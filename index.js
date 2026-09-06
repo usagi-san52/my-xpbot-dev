@@ -221,18 +221,15 @@ client.on("messageCreate", async (message) => {
 
     const N = players.length;
 
-    // チーム人数を自動決定
     const teamA_size = Math.floor(N / 2);
     const teamB_size = N - teamA_size;
 
-    // XP取得
     const xpList = [];
     for (const player of players) {
       const xp = await getXP(guildId, player);
       xpList.push({ player, xp });
     }
 
-    // シャッフル関数
     function shuffle(array) {
       for (let i = array.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -244,7 +241,8 @@ client.on("messageCreate", async (message) => {
     let bestTeamB = [];
     let bestDiff = Infinity;
 
-    // ランダム試行
+    const goodCandidates = []; // 差200以下の候補を貯める
+
     for (let trial = 0; trial < 200; trial++) {
       const arr = [...xpList];
       shuffle(arr);
@@ -256,6 +254,12 @@ client.on("messageCreate", async (message) => {
       const sumB = teamB.reduce((a, b) => a + b.xp, 0);
       const diff = Math.abs(sumA - sumB);
 
+      // 差200以下なら候補として保存
+      if (diff <= 200) {
+        goodCandidates.push({ teamA, teamB, sumA, sumB, diff });
+      }
+
+      // 最小差も一応記録しておく（保険）
       if (diff < bestDiff) {
         bestDiff = diff;
         bestTeamA = teamA;
@@ -263,11 +267,28 @@ client.on("messageCreate", async (message) => {
       }
     }
 
-    const sumA = bestTeamA.reduce((a, b) => a + b.xp, 0);
-    const sumB = bestTeamB.reduce((a, b) => a + b.xp, 0);
+    let finalTeamA, finalTeamB, sumA, sumB, finalDiff;
 
-    const teamAList = bestTeamA.map((p) => `${p.player} (${p.xp})`).join("\n");
-    const teamBList = bestTeamB.map((p) => `${p.player} (${p.xp})`).join("\n");
+    if (goodCandidates.length > 0) {
+      // 差200以下の中からランダムで1つ選ぶ
+      const pick =
+        goodCandidates[Math.floor(Math.random() * goodCandidates.length)];
+      finalTeamA = pick.teamA;
+      finalTeamB = pick.teamB;
+      sumA = pick.sumA;
+      sumB = pick.sumB;
+      finalDiff = pick.diff;
+    } else {
+      // 200以下が1つもなければ最小差の組み合わせ
+      finalTeamA = bestTeamA;
+      finalTeamB = bestTeamB;
+      sumA = finalTeamA.reduce((a, b) => a + b.xp, 0);
+      sumB = finalTeamB.reduce((a, b) => a + b.xp, 0);
+      finalDiff = Math.abs(sumA - sumB);
+    }
+
+    const teamAList = finalTeamA.map((p) => `${p.player} (${p.xp})`).join("\n");
+    const teamBList = finalTeamB.map((p) => `${p.player} (${p.xp})`).join("\n");
 
     return message.reply(
       `入力人数: ${players.length}人\n` +
@@ -275,7 +296,7 @@ client.on("messageCreate", async (message) => {
         `Bチーム人数: ${teamB_size}\n\n` +
         `**Aチーム (合計XP: ${sumA})**\n${teamAList}\n\n` +
         `**Bチーム (合計XP: ${sumB})**\n${teamBList}\n\n` +
-        `XP差: ${bestDiff}`,
+        `XP差: ${finalDiff}（許容200）`,
     );
   }
 });
