@@ -401,7 +401,7 @@ client.on("messageCreate", async (message) => {
   }
 
   // -------------------------
-  // ⑮ プレイヤー選択 → チーム分け UI !player_select_team
+  // ⑮ プレイヤー選択 → チーム分け UI（50人対応）
   // -------------------------
   if (message.content === "!player_select_team") {
     const { ActionRowBuilder, StringSelectMenuBuilder } = require("discord.js");
@@ -412,23 +412,49 @@ client.on("messageCreate", async (message) => {
       return message.reply("まだプレイヤーが登録されていないよ");
     }
 
-    const options = players.map((p) => ({
-      label: p.player,
-      value: p.player,
-    }));
+    // 25人ずつに分割
+    const firstGroup = players.slice(0, 25);
+    const secondGroup = players.slice(25, 50);
 
-    const menu = new StringSelectMenuBuilder()
-      .setCustomId("player_team_select")
-      .setPlaceholder("チーム分けするプレイヤーを選んでね（複数選択OK）")
-      .setMinValues(4)
-      .setMaxValues(options.length)
-      .addOptions(options);
+    const rows = [];
 
-    const row = new ActionRowBuilder().addComponents(menu);
+    // 1つ目のメニュー
+    if (firstGroup.length > 0) {
+      const menu1 = new StringSelectMenuBuilder()
+        .setCustomId("player_team_select_1")
+        .setPlaceholder("プレイヤー選択（1〜25人）")
+        .setMinValues(0)
+        .setMaxValues(firstGroup.length)
+        .addOptions(
+          firstGroup.map((p) => ({
+            label: p.player,
+            value: p.player,
+          })),
+        );
+
+      rows.push(new ActionRowBuilder().addComponents(menu1));
+    }
+
+    // 2つ目のメニュー
+    if (secondGroup.length > 0) {
+      const menu2 = new StringSelectMenuBuilder()
+        .setCustomId("player_team_select_2")
+        .setPlaceholder("プレイヤー選択（26〜50人）")
+        .setMinValues(0)
+        .setMaxValues(secondGroup.length)
+        .addOptions(
+          secondGroup.map((p) => ({
+            label: p.player,
+            value: p.player,
+          })),
+        );
+
+      rows.push(new ActionRowBuilder().addComponents(menu2));
+    }
 
     return message.reply({
-      content: "チーム分けするプレイヤーを選んでね！",
-      components: [row],
+      content: "チーム分けするプレイヤーを選んでね！（最大50人対応）",
+      components: rows,
     });
   }
 });
@@ -436,9 +462,7 @@ client.on("messageCreate", async (message) => {
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isStringSelectMenu()) return;
 
-  // -------------------------
-  // ルール選択処理
-  // -------------------------
+  // ルール選択
   if (interaction.customId === "rule_multi_select") {
     const selectedRules = interaction.values;
 
@@ -481,13 +505,16 @@ client.on("interactionCreate", async (interaction) => {
     );
   }
 
-  // -------------------------
-  // チーム分け処理
-  // -------------------------
-  if (interaction.customId === "player_team_select") {
+  // チーム分け（50人対応）
+  if (
+    interaction.customId === "player_team_select_1" ||
+    interaction.customId === "player_team_select_2"
+  ) {
     await interaction.deferReply();
 
     const guildId = interaction.guild.id;
+
+    // どちらのメニューでも選択されたプレイヤーを取得
     const selectedPlayers = interaction.values;
 
     if (selectedPlayers.length < 4) {
