@@ -24,30 +24,49 @@ async function getXP(guildId, player) {
     .eq("player", player)
     .single();
 
-  if (error) return 0;
+  if (error) {
+    console.error("getXP error:", error);
+    return 0;
+  }
+
   return data?.xp ?? 0;
 }
 
 // XP を保存
 async function setXP(guildId, player, xp) {
-  await supabase.from("xp").upsert({ guild_id: guildId, player, xp });
+  const { error } = await supabase
+    .from("xp")
+    .upsert({ guild_id: guildId, player, xp });
+
+  if (error) {
+    console.error("setXP error:", error);
+  }
 }
 
 // XP を削除
 async function deleteXP(guildId, player) {
-  await supabase
+  const { error } = await supabase
     .from("xp")
     .delete()
     .eq("guild_id", guildId)
     .eq("player", player);
+
+  if (error) {
+    console.error("deleteXP error:", error);
+  }
 }
 
 // サーバー内の全プレイヤー一覧
 async function listPlayers(guildId) {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("xp")
     .select("*")
     .eq("guild_id", guildId);
+
+  if (error) {
+    console.error("listPlayers error:", error);
+    return [];
+  }
 
   return data ?? [];
 }
@@ -64,16 +83,13 @@ client.on("messageCreate", async (message) => {
   // -------------------------
   // ① !set プレイヤー名 値
   // -------------------------
-  if (
-    message.content.startsWith("!set") ||
-    message.content.startsWith("iset")
-  ) {
+  if (message.content.startsWith("!set")) {
     const args = message.content.trim().split(/\s+/);
-    const player = args[1];
+    const player = args[1]?.trim(); // ← 重要：スペース除去
     const value = Number(args[2]);
 
     if (!player) {
-      return message.reply("プレイヤー名を指定してね（例: !set あああ 50）");
+      return message.reply("プレイヤー名を指定してね（例: !set うさぎ 50）");
     }
     if (isNaN(value)) {
       return message.reply("XPは数字で指定してね");
@@ -88,10 +104,10 @@ client.on("messageCreate", async (message) => {
   // -------------------------
   if (message.content.startsWith("!get")) {
     const args = message.content.trim().split(/\s+/);
-    const player = args[1];
+    const player = args[1]?.trim(); // ← 重要
 
     if (!player) {
-      return message.reply("プレイヤー名を指定してね（例: !get あああ）");
+      return message.reply("プレイヤー名を指定してね（例: !get うさぎ）");
     }
 
     const xp = await getXP(guildId, player);
@@ -140,11 +156,11 @@ client.on("messageCreate", async (message) => {
   // -------------------------
   if (message.content.startsWith("!del")) {
     const args = message.content.trim().split(/\s+/);
-    const player = args[1];
+    const player = args[1]?.trim(); // ← 重要
 
     if (!player) {
       return message.reply(
-        "削除するプレイヤー名を指定してね（例: !del あああ）",
+        "削除するプレイヤー名を指定してね（例: !del うさぎ）",
       );
     }
 
@@ -169,7 +185,7 @@ client.on("messageCreate", async (message) => {
       return message.reply("最後の値は最大コスト（数字）を指定してね");
     }
 
-    const players = args.slice(1, -1);
+    const players = args.slice(1, -1).map((p) => p.trim());
 
     let total = 0;
     const lines = [];
