@@ -401,7 +401,7 @@ client.on("messageCreate", async (message) => {
   }
 
   // -------------------------
-  // ⑮ プレイヤー選択 → チーム分け UI（50人対応）
+  // ⑮ プレイヤー選択 → チーム分け UI（最大50人対応）
   // -------------------------
   if (message.content === "!player_select_team") {
     const { ActionRowBuilder, StringSelectMenuBuilder } = require("discord.js");
@@ -418,25 +418,23 @@ client.on("messageCreate", async (message) => {
 
     const rows = [];
 
-    // 1つ目のメニュー
-    if (firstGroup.length > 0) {
-      const menu1 = new StringSelectMenuBuilder()
-        .setCustomId("player_team_select_1")
-        .setPlaceholder("プレイヤー選択（1〜25人）")
-        .setMinValues(0)
-        .setMaxValues(firstGroup.length)
-        .addOptions(
-          firstGroup.map((p) => ({
-            label: p.player,
-            value: p.player,
-          })),
-        );
+    // 1つ目のメニュー（必ず表示）
+    const menu1 = new StringSelectMenuBuilder()
+      .setCustomId("player_team_select_1")
+      .setPlaceholder("プレイヤー選択（1〜25人）")
+      .setMinValues(0)
+      .setMaxValues(firstGroup.length)
+      .addOptions(
+        firstGroup.map((p) => ({
+          label: p.player,
+          value: p.player,
+        })),
+      );
 
-      rows.push(new ActionRowBuilder().addComponents(menu1));
-    }
+    rows.push(new ActionRowBuilder().addComponents(menu1));
 
-    // 2つ目のメニュー
-    if (secondGroup.length > 0) {
+    // ★ ここがポイント：25人を超えたときだけ2つ目を追加
+    if (players.length > 25) {
       const menu2 = new StringSelectMenuBuilder()
         .setCustomId("player_team_select_2")
         .setPlaceholder("プレイヤー選択（26〜50人）")
