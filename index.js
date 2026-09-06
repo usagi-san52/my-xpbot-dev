@@ -75,32 +75,6 @@ client.once("ready", () => {
   console.log(`ログイン完了: ${client.user.tag}`);
 });
 
-// -------------------------
-// ⑪ 複数ルール選択式ステージ抽選 !stage_select_multi
-// -------------------------
-if (message.content === "!stage_select_multi") {
-  const { ActionRowBuilder, StringSelectMenuBuilder } = require("discord.js");
-
-  const menu = new StringSelectMenuBuilder()
-    .setCustomId("rule_multi_select")
-    .setPlaceholder("ルールを選んでね（複数選択OK）")
-    .setMinValues(1)
-    .setMaxValues(4)
-    .addOptions([
-      { label: "ガチエリア", value: "ガチエリア" },
-      { label: "ガチヤグラ", value: "ガチヤグラ" },
-      { label: "ガチホコ", value: "ガチホコ" },
-      { label: "ガチアサリ", value: "ガチアサリ" },
-    ]);
-
-  const row = new ActionRowBuilder().addComponents(menu);
-
-  return message.reply({
-    content: "ルールを選んでね！（複数選択できます）",
-    components: [row],
-  });
-}
-
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
 
@@ -398,6 +372,32 @@ client.on("messageCreate", async (message) => {
         `**Bチーム (合計XP: ${sumB})**\n${teamBList}\n\n` +
         `XP差: ${bestDiff}`,
     );
+  }
+
+  // -------------------------
+  // ⑪ 複数ルール選択式ステージ抽選 !stage_select_multi
+  // -------------------------
+  if (message.content === "!stage_select_multi") {
+    const { ActionRowBuilder, StringSelectMenuBuilder } = require("discord.js");
+
+    const menu = new StringSelectMenuBuilder()
+      .setCustomId("rule_multi_select")
+      .setPlaceholder("ルールを選んでね（複数選択OK）")
+      .setMinValues(1)
+      .setMaxValues(4)
+      .addOptions([
+        { label: "ガチエリア", value: "ガチエリア" },
+        { label: "ガチヤグラ", value: "ガチヤグラ" },
+        { label: "ガチホコ", value: "ガチホコ" },
+        { label: "ガチアサリ", value: "ガチアサリ" },
+      ]);
+
+    const row = new ActionRowBuilder().addComponents(menu);
+
+    return message.reply({
+      content: "ルールを選んでね！（複数選択できます）",
+      components: [row],
+    });
   }
 });
 
