@@ -399,6 +399,38 @@ client.on("messageCreate", async (message) => {
       components: [row],
     });
   }
+
+  // -------------------------
+  // ⑮ プレイヤー選択 → チーム分け UI !player_select_team
+  // -------------------------
+  if (message.content === "!player_select_team") {
+    const { ActionRowBuilder, StringSelectMenuBuilder } = require("discord.js");
+
+    const players = await listPlayers(guildId);
+
+    if (players.length === 0) {
+      return message.reply("まだプレイヤーが登録されていないよ");
+    }
+
+    const options = players.map((p) => ({
+      label: p.player,
+      value: p.player,
+    }));
+
+    const menu = new StringSelectMenuBuilder()
+      .setCustomId("player_team_select")
+      .setPlaceholder("チーム分けするプレイヤーを選んでね（複数選択OK）")
+      .setMinValues(4)
+      .setMaxValues(options.length)
+      .addOptions(options);
+
+    const row = new ActionRowBuilder().addComponents(menu);
+
+    return message.reply({
+      content: "チーム分けするプレイヤーを選んでね！",
+      components: [row],
+    });
+  }
 });
 
 // -------------------------
@@ -446,6 +478,82 @@ client.on("interactionCreate", async (interaction) => {
     `🎯 **選択ルール: ${selectedRules.join(", ")}**\n` +
       `🎲 抽選ルール: **${rule}**\n` +
       `🗺️ ステージ: **${stage}**`,
+  );
+});
+
+// -------------------------
+// ⑯ プレイヤー選択後 → チーム分け処理
+// -------------------------
+client.on("interactionCreate", async (interaction) => {
+  if (!interaction.isStringSelectMenu()) return;
+  if (interaction.customId !== "player_team_select") return;
+
+  const guildId = interaction.guild.id;
+  const selectedPlayers = interaction.values;
+
+  if (selectedPlayers.length < 4) {
+    return interaction.reply("最低4人以上選んでね");
+  }
+  if (selectedPlayers.length > 8) {
+    return interaction.reply("最大8人まで選べるよ（観戦枠なし仕様）");
+  }
+
+  // XP取得
+  const xpList = [];
+  for (const player of selectedPlayers) {
+    const xp = await getXP(guildId, player);
+    xpList.push({ player, xp });
+  }
+
+  // チーム人数決定
+  const N = xpList.length;
+  const teamA_size = Math.floor(N / 2);
+  const teamB_size = N - teamA_size;
+
+  // シャッフル関数
+  function shuffle(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+  }
+
+  let bestTeamA = [];
+  let bestTeamB = [];
+  let bestDiff = Infinity;
+
+  // ランダム試行で最適化
+  for (let trial = 0; trial < 100; trial++) {
+    const arr = [...xpList];
+    shuffle(arr);
+
+    const teamA = arr.slice(0, teamA_size);
+    const teamB = arr.slice(teamA_size);
+
+    const sumA = teamA.reduce((a, b) => a + b.xp, 0);
+    const sumB = teamB.reduce((a, b) => a + b.xp, 0);
+    const diff = Math.abs(sumA - sumB);
+
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      bestTeamA = teamA;
+      bestTeamB = teamB;
+    }
+  }
+
+  const sumA = bestTeamA.reduce((a, b) => a + b.xp, 0);
+  const sumB = bestTeamB.reduce((a, b) => a + b.xp, 0);
+
+  const teamAList = bestTeamA.map((p) => `${p.player} (${p.xp})`).join("\n");
+  const teamBList = bestTeamB.map((p) => `${p.player} (${p.xp})`).join("\n");
+
+  return interaction.reply(
+    `🎯 **選択人数: ${selectedPlayers.length}人**\n` +
+      `Aチーム人数: ${teamA_size}\n` +
+      `Bチーム人数: ${teamB_size}\n\n` +
+      `**Aチーム (合計XP: ${sumA})**\n${teamAList}\n\n` +
+      `**Bチーム (合計XP: ${sumB})**\n${teamBList}\n\n` +
+      `XP差: ${bestDiff}`,
   );
 });
 
