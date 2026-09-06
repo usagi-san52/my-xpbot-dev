@@ -75,6 +75,32 @@ client.once("ready", () => {
   console.log(`ログイン完了: ${client.user.tag}`);
 });
 
+// -------------------------
+// ⑪ 複数ルール選択式ステージ抽選 !stage_select_multi
+// -------------------------
+if (message.content === "!stage_select_multi") {
+  const { ActionRowBuilder, StringSelectMenuBuilder } = require("discord.js");
+
+  const menu = new StringSelectMenuBuilder()
+    .setCustomId("rule_multi_select")
+    .setPlaceholder("ルールを選んでね（複数選択OK）")
+    .setMinValues(1)
+    .setMaxValues(4)
+    .addOptions([
+      { label: "ガチエリア", value: "ガチエリア" },
+      { label: "ガチヤグラ", value: "ガチヤグラ" },
+      { label: "ガチホコ", value: "ガチホコ" },
+      { label: "ガチアサリ", value: "ガチアサリ" },
+    ]);
+
+  const row = new ActionRowBuilder().addComponents(menu);
+
+  return message.reply({
+    content: "ルールを選んでね！（複数選択できます）",
+    components: [row],
+  });
+}
+
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
 
@@ -373,48 +399,54 @@ client.on("messageCreate", async (message) => {
         `XP差: ${bestDiff}`,
     );
   }
+});
 
-  // -------------------------
-  // ⑧ ランダムステージ + ルール !stage
-  // -------------------------
-  if (message.content === "!stage") {
-    const stages = [
-      "ユノハナ大渓谷",
-      "ゴンズイ地区",
-      "ヤガラ市場",
-      "マテガイ放水路",
-      "ナメロウ金属",
-      "クサヤ温泉",
-      "ヒラメが丘団地",
-      "マサバ海峡大橋",
-      "スメーシーワールド",
-      "キンメダイ美術館",
-      "リュウグウターミナル",
-      "デカライン高架下",
-      "バイガイ亭",
-      "ナンプラー遺跡",
-      "マヒマヒリゾート＆スパ",
-      "ザトウマーケット",
-      "チョウザメ造船",
-      "マンタマリア号",
-      "カジキ空港",
-      "ネギトロ炭鉱",
-      "タラポートショッピングセンター",
-      "タカアシ経済特区",
-      "オヒョウ海運",
-      "海女美術大学",
-      "コンブトラック",
-    ];
+// -------------------------
+// ⑫ 複数ルール選択後の抽選処理
+// -------------------------
+client.on("interactionCreate", async (interaction) => {
+  if (!interaction.isStringSelectMenu()) return;
+  if (interaction.customId !== "rule_multi_select") return;
 
-    const rules = ["ガチエリア", "ガチヤグラ", "ガチホコ", "ガチアサリ"];
+  const selectedRules = interaction.values; // ← ユーザーが選んだ複数ルール
 
-    const stage = stages[Math.floor(Math.random() * stages.length)];
-    const rule = rules[Math.floor(Math.random() * rules.length)];
+  const stages = [
+    "ユノハナ大渓谷",
+    "ゴンズイ地区",
+    "ヤガラ市場",
+    "マテガイ放水路",
+    "ナメロウ金属",
+    "クサヤ温泉",
+    "ヒラメが丘団地",
+    "マサバ海峡大橋",
+    "スメーシーワールド",
+    "キンメダイ美術館",
+    "リュウグウターミナル",
+    "デカライン高架下",
+    "バイガイ亭",
+    "ナンプラー遺跡",
+    "マヒマヒリゾート＆スパ",
+    "ザトウマーケット",
+    "チョウザメ造船",
+    "マンタマリア号",
+    "カジキ空港",
+    "ネギトロ炭鉱",
+    "タラポートショッピングセンター",
+    "タカアシ経済特区",
+    "オヒョウ海運",
+    "海女美術大学",
+    "コンブトラック",
+  ];
 
-    return message.reply(
-      `🎲 ランダムステージ抽選！\nステージ: **${stage}**\nルール: **${rule}**`,
-    );
-  }
+  // ランダム抽選
+  const stage = stages[Math.floor(Math.random() * stages.length)];
+  const rule = selectedRules[Math.floor(Math.random() * selectedRules.length)];
+
+  return interaction.reply(
+    `🎯 **選択ルール: ${selectedRules.join(", ")}**\n` +
+      `🎲 抽選ルール: **${rule}**\n` +
+      `🗺️ ステージ: **${stage}**`,
+  );
 });
 
 // ★ Bot トークン
