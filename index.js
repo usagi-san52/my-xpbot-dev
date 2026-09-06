@@ -243,7 +243,7 @@ client.on("messageCreate", async (message) => {
 
     const goodCandidates = []; // 差200以下の候補を貯める
 
-    for (let trial = 0; trial < 200; trial++) {
+    for (let trial = 0; trial < 100; trial++) {
       const arr = [...xpList];
       shuffle(arr);
 
@@ -340,7 +340,7 @@ client.on("messageCreate", async (message) => {
     let bestDiff = Infinity;
 
     // ランダム試行
-    for (let trial = 0; trial < 200; trial++) {
+    for (let trial = 0; trial < 100; trial++) {
       const arr = [...xpList];
       shuffle(arr);
 
