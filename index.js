@@ -204,6 +204,80 @@ client.on("messageCreate", async (message) => {
         `\n\n合計XP: ${total}\n最大コスト: ${maxCost}\n残りコスト: ${remain}`,
     );
   }
+
+  // -------------------------
+  // ⑦ !team プレイヤー名...
+  // -------------------------
+  if (message.content.startsWith("!team")) {
+    const args = message.content.trim().split(/\s+/);
+    const players = args.slice(1).map((p) => p.trim());
+
+    if (players.length < 4) {
+      return message.reply("最低4人以上を指定してね（例: !team A B C D）");
+    }
+    if (players.length > 8) {
+      return message.reply("最大8人まで指定できるよ（観戦枠なし仕様）");
+    }
+
+    const N = players.length;
+
+    // チーム人数を自動決定
+    const teamA_size = Math.floor(N / 2);
+    const teamB_size = N - teamA_size;
+
+    // XP取得
+    const xpList = [];
+    for (const player of players) {
+      const xp = await getXP(guildId, player);
+      xpList.push({ player, xp });
+    }
+
+    // シャッフル関数
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+    }
+
+    let bestTeamA = [];
+    let bestTeamB = [];
+    let bestDiff = Infinity;
+
+    // ランダム試行
+    for (let trial = 0; trial < 200; trial++) {
+      const arr = [...xpList];
+      shuffle(arr);
+
+      const teamA = arr.slice(0, teamA_size);
+      const teamB = arr.slice(teamA_size);
+
+      const sumA = teamA.reduce((a, b) => a + b.xp, 0);
+      const sumB = teamB.reduce((a, b) => a + b.xp, 0);
+      const diff = Math.abs(sumA - sumB);
+
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        bestTeamA = teamA;
+        bestTeamB = teamB;
+      }
+    }
+
+    const sumA = bestTeamA.reduce((a, b) => a + b.xp, 0);
+    const sumB = bestTeamB.reduce((a, b) => a + b.xp, 0);
+
+    const teamAList = bestTeamA.map((p) => `${p.player} (${p.xp})`).join("\n");
+    const teamBList = bestTeamB.map((p) => `${p.player} (${p.xp})`).join("\n");
+
+    return message.reply(
+      `入力人数: ${players.length}人\n` +
+        `Aチーム人数: ${teamA_size}\n` +
+        `Bチーム人数: ${teamB_size}\n\n` +
+        `**Aチーム (合計XP: ${sumA})**\n${teamAList}\n\n` +
+        `**Bチーム (合計XP: ${sumB})**\n${teamBList}\n\n` +
+        `XP差: ${bestDiff}`,
+    );
+  }
 });
 
 // ★ Bot トークン
