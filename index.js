@@ -208,7 +208,7 @@ client.on("messageCreate", async (message) => {
   // -------------------------
   // ⑦ !team プレイヤー名...
   // -------------------------
-  if (message.content.startsWith("!team")) {
+  if (message.content.startsWith("!team ")) {
     const args = message.content.trim().split(/\s+/);
     const players = args.slice(1).map((p) => p.trim());
 
@@ -303,7 +303,7 @@ client.on("messageCreate", async (message) => {
   // -------------------------
   // ⑦ !team プレイヤー名...
   // -------------------------
-  if (message.content.startsWith("!team_strict")) {
+  if (message.content.startsWith("!team_strict ")) {
     const args = message.content.trim().split(/\s+/);
     const players = args.slice(1).map((p) => p.trim());
 
