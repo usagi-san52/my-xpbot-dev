@@ -15,6 +15,33 @@ const client = new Client({
   ],
 });
 
+// ブキ一覧
+const weapons = [
+  "スプラシューター",
+  "プロモデラーMG",
+  "N-ZAP85",
+  "ボールドマーカー",
+  "わかばシューター",
+  "シャープマーカー",
+  "52ガロン",
+  "96ガロン",
+  "ジェットスイーパー",
+  "プライムシューター",
+  "スプラローラー",
+  "カーボンローラー",
+  "ヴァリアブルローラー",
+  "スプラチャージャー",
+  "スプラスコープ",
+  "リッター4K",
+  "4Kスコープ",
+  "スプラマニューバー",
+  "ケルビン525",
+  "デュアルスイーパー",
+  "パブロ",
+  "ホクサイ",
+  "スプラブラシ",
+];
+
 // XP を取得
 async function getXP(guildId, player) {
   const { data, error } = await supabase
@@ -208,7 +235,7 @@ client.on("messageCreate", async (message) => {
   // -------------------------
   // ⑦ !team プレイヤー名...
   // -------------------------
-  if (message.content.startsWith("!team ")) {
+  if (message.content.startsWith("!team2 ")) {
     const args = message.content.trim().split(/\s+/);
     const players = args.slice(1).map((p) => p.trim());
 
@@ -301,83 +328,9 @@ client.on("messageCreate", async (message) => {
   }
 
   // -------------------------
-  // ⑦ !team プレイヤー名...
+  // ⑪ 複数ルール選択式ステージ抽選 !stage
   // -------------------------
-  if (message.content.startsWith("!team_strict ")) {
-    const args = message.content.trim().split(/\s+/);
-    const players = args.slice(1).map((p) => p.trim());
-
-    if (players.length < 4) {
-      return message.reply("最低4人以上を指定してね（例: !team A B C D）");
-    }
-    if (players.length > 8) {
-      return message.reply("最大8人まで指定できるよ（観戦枠なし仕様）");
-    }
-
-    const N = players.length;
-
-    // チーム人数を自動決定
-    const teamA_size = Math.floor(N / 2);
-    const teamB_size = N - teamA_size;
-
-    // XP取得
-    const xpList = [];
-    for (const player of players) {
-      const xp = await getXP(guildId, player);
-      xpList.push({ player, xp });
-    }
-
-    // シャッフル関数
-    function shuffle(array) {
-      for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-      }
-    }
-
-    let bestTeamA = [];
-    let bestTeamB = [];
-    let bestDiff = Infinity;
-
-    // ランダム試行
-    for (let trial = 0; trial < 100; trial++) {
-      const arr = [...xpList];
-      shuffle(arr);
-
-      const teamA = arr.slice(0, teamA_size);
-      const teamB = arr.slice(teamA_size);
-
-      const sumA = teamA.reduce((a, b) => a + b.xp, 0);
-      const sumB = teamB.reduce((a, b) => a + b.xp, 0);
-      const diff = Math.abs(sumA - sumB);
-
-      if (diff < bestDiff) {
-        bestDiff = diff;
-        bestTeamA = teamA;
-        bestTeamB = teamB;
-      }
-    }
-
-    const sumA = bestTeamA.reduce((a, b) => a + b.xp, 0);
-    const sumB = bestTeamB.reduce((a, b) => a + b.xp, 0);
-
-    const teamAList = bestTeamA.map((p) => `${p.player} (${p.xp})`).join("\n");
-    const teamBList = bestTeamB.map((p) => `${p.player} (${p.xp})`).join("\n");
-
-    return message.reply(
-      `入力人数: ${players.length}人\n` +
-        `Aチーム人数: ${teamA_size}\n` +
-        `Bチーム人数: ${teamB_size}\n\n` +
-        `**Aチーム (合計XP: ${sumA})**\n${teamAList}\n\n` +
-        `**Bチーム (合計XP: ${sumB})**\n${teamBList}\n\n` +
-        `XP差: ${bestDiff}`,
-    );
-  }
-
-  // -------------------------
-  // ⑪ 複数ルール選択式ステージ抽選 !stage_select_multi
-  // -------------------------
-  if (message.content === "!stage_select_multi") {
+  if (message.content === "!stage") {
     const { ActionRowBuilder, StringSelectMenuBuilder } = require("discord.js");
 
     const menu = new StringSelectMenuBuilder()
@@ -403,7 +356,7 @@ client.on("messageCreate", async (message) => {
   // -------------------------
   // ⑮ プレイヤー選択 → チーム分け UI（最大50人対応）
   // -------------------------
-  if (message.content === "!player_select_team") {
+  if (message.content === "!team") {
     const { ActionRowBuilder, StringSelectMenuBuilder } = require("discord.js");
 
     const players = await listPlayers(guildId);
@@ -453,6 +406,27 @@ client.on("messageCreate", async (message) => {
     return message.reply({
       content: "チーム分けするプレイヤーを選んでね！（最大50人対応）",
       components: rows,
+    });
+  }
+
+  if (message.content === "!weapon") {
+    const { ActionRowBuilder, StringSelectMenuBuilder } = require("discord.js");
+
+    const menu = new StringSelectMenuBuilder()
+      .setCustomId("weapon_mode_select")
+      .setPlaceholder("ブキ抽選モードを選んでね")
+      .setMinValues(1)
+      .setMaxValues(1)
+      .addOptions([
+        { label: "1種類だけ選ぶ（全員同じ）", value: "single" },
+        { label: "全員に別々のブキを割り当てる", value: "multi" },
+      ]);
+
+    const row = new ActionRowBuilder().addComponents(menu);
+
+    return message.reply({
+      content: "ブキ抽選モードを選んでね！",
+      components: [row],
     });
   }
 });
@@ -575,6 +549,42 @@ client.on("interactionCreate", async (interaction) => {
         `**Bチーム (合計XP: ${sumB})**\n${teamBList}\n\n` +
         `XP差: ${bestDiff}`,
     );
+
+    // ブキ抽選モード選択
+    if (interaction.customId === "weapon_mode_select") {
+      const mode = interaction.values[0];
+
+      // ① 1種類だけ選ぶ
+      if (mode === "single") {
+        const weapon = weapons[Math.floor(Math.random() * weapons.length)];
+        return interaction.reply(`🎯 今日のブキは **${weapon}** だよ！`);
+      }
+
+      // ② 全員に別々のブキを割り当てる
+      if (mode === "multi") {
+        const guildId = interaction.guild.id;
+        const players = await listPlayers(guildId);
+
+        if (players.length === 0) {
+          return interaction.reply("まだプレイヤーが登録されていないよ");
+        }
+
+        if (players.length > weapons.length) {
+          return interaction.reply("プレイヤー数がブキ数を超えているよ！");
+        }
+
+        // シャッフル
+        const shuffled = [...weapons];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+
+        const lines = players.map((p, i) => `${p.player}: ${shuffled[i]}`);
+
+        return interaction.reply("🎯 メンバー別ブキ抽選:\n" + lines.join("\n"));
+      }
+    }
   }
 });
 
