@@ -419,7 +419,7 @@ client.on("messageCreate", async (message) => {
       .setMaxValues(1)
       .addOptions([
         { label: "1種類だけ選ぶ（全員同じ）", value: "single" },
-        { label: "全員に別々のブキを割り当てる", value: "multi" },
+        { label: "選んだプレイヤーに別々のブキを割り当てる", value: "multi" },
       ]);
 
     const row = new ActionRowBuilder().addComponents(menu);
@@ -550,7 +550,6 @@ client.on("interactionCreate", async (interaction) => {
         `XP差: ${bestDiff}`,
     );
 
-    // ブキ抽選モード選択
     if (interaction.customId === "weapon_mode_select") {
       const mode = interaction.values[0];
 
@@ -560,7 +559,7 @@ client.on("interactionCreate", async (interaction) => {
         return interaction.reply(`🎯 今日のブキは **${weapon}** だよ！`);
       }
 
-      // ② 全員に別々のブキを割り当てる
+      // ② プレイヤー選択 UI を表示（最大8人）
       if (mode === "multi") {
         const guildId = interaction.guild.id;
         const players = await listPlayers(guildId);
@@ -569,20 +568,29 @@ client.on("interactionCreate", async (interaction) => {
           return interaction.reply("まだプレイヤーが登録されていないよ");
         }
 
-        if (players.length > weapons.length) {
-          return interaction.reply("プレイヤー数がブキ数を超えているよ！");
-        }
+        const {
+          ActionRowBuilder,
+          StringSelectMenuBuilder,
+        } = require("discord.js");
 
-        // シャッフル
-        const shuffled = [...weapons];
-        for (let i = shuffled.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-        }
+        const menu = new StringSelectMenuBuilder()
+          .setCustomId("weapon_player_select")
+          .setPlaceholder("ブキを割り当てるプレイヤーを選んでね（最大8人）")
+          .setMinValues(1)
+          .setMaxValues(8)
+          .addOptions(
+            players.map((p) => ({
+              label: p.player,
+              value: p.player,
+            })),
+          );
 
-        const lines = players.map((p, i) => `${p.player}: ${shuffled[i]}`);
+        const row = new ActionRowBuilder().addComponents(menu);
 
-        return interaction.reply("🎯 メンバー別ブキ抽選:\n" + lines.join("\n"));
+        return interaction.reply({
+          content: "プレイヤーを選んでね！（最大8人）",
+          components: [row],
+        });
       }
     }
   }
