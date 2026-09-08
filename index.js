@@ -477,7 +477,7 @@ client.on("interactionCreate", async (interaction) => {
     );
   }
 
-  // ブキ抽選
+  // ブキ抽選モード選択
   if (interaction.customId === "weapon_mode_select") {
     const mode = interaction.values[0];
 
@@ -520,6 +520,34 @@ client.on("interactionCreate", async (interaction) => {
         components: [row],
       });
     }
+  }
+
+  // ブキ割り当て（選んだプレイヤーに割り当て）
+  if (interaction.customId === "weapon_player_select") {
+    await interaction.deferReply();
+
+    const selectedPlayers = interaction.values;
+
+    if (selectedPlayers.length === 0) {
+      return interaction.editReply("最低1人以上選んでね");
+    }
+
+    if (selectedPlayers.length > 8) {
+      return interaction.editReply("最大8人まで選べるよ");
+    }
+
+    // シャッフル
+    const shuffled = [...weapons];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
+    const lines = selectedPlayers.map((p, i) => `${p}: ${shuffled[i]}`);
+
+    return interaction.editReply(
+      "🎯 **選んだプレイヤーのブキ抽選結果**\n" + lines.join("\n"),
+    );
   }
 
   // チーム分け（50人対応）
