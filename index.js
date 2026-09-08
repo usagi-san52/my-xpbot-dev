@@ -477,6 +477,51 @@ client.on("interactionCreate", async (interaction) => {
     );
   }
 
+  // ブキ抽選
+  if (interaction.customId === "weapon_mode_select") {
+    const mode = interaction.values[0];
+
+    // ① 1種類だけ選ぶ
+    if (mode === "single") {
+      const weapon = weapons[Math.floor(Math.random() * weapons.length)];
+      return interaction.reply(`🎯 今日のブキは **${weapon}** だよ！`);
+    }
+
+    // ② プレイヤー選択 UI を表示（最大8人）
+    if (mode === "multi") {
+      const guildId = interaction.guild.id;
+      const players = await listPlayers(guildId);
+
+      if (players.length === 0) {
+        return interaction.reply("まだプレイヤーが登録されていないよ");
+      }
+
+      const {
+        ActionRowBuilder,
+        StringSelectMenuBuilder,
+      } = require("discord.js");
+
+      const menu = new StringSelectMenuBuilder()
+        .setCustomId("weapon_player_select")
+        .setPlaceholder("ブキを割り当てるプレイヤーを選んでね（最大8人）")
+        .setMinValues(1)
+        .setMaxValues(8)
+        .addOptions(
+          players.map((p) => ({
+            label: p.player,
+            value: p.player,
+          })),
+        );
+
+      const row = new ActionRowBuilder().addComponents(menu);
+
+      return interaction.reply({
+        content: "プレイヤーを選んでね！（最大8人）",
+        components: [row],
+      });
+    }
+  }
+
   // チーム分け（50人対応）
   if (
     interaction.customId === "player_team_select_1" ||
@@ -549,50 +594,6 @@ client.on("interactionCreate", async (interaction) => {
         `**Bチーム (合計XP: ${sumB})**\n${teamBList}\n\n` +
         `XP差: ${bestDiff}`,
     );
-
-    if (interaction.customId === "weapon_mode_select") {
-      const mode = interaction.values[0];
-
-      // ① 1種類だけ選ぶ
-      if (mode === "single") {
-        const weapon = weapons[Math.floor(Math.random() * weapons.length)];
-        return interaction.reply(`🎯 今日のブキは **${weapon}** だよ！`);
-      }
-
-      // ② プレイヤー選択 UI を表示（最大8人）
-      if (mode === "multi") {
-        const guildId = interaction.guild.id;
-        const players = await listPlayers(guildId);
-
-        if (players.length === 0) {
-          return interaction.reply("まだプレイヤーが登録されていないよ");
-        }
-
-        const {
-          ActionRowBuilder,
-          StringSelectMenuBuilder,
-        } = require("discord.js");
-
-        const menu = new StringSelectMenuBuilder()
-          .setCustomId("weapon_player_select")
-          .setPlaceholder("ブキを割り当てるプレイヤーを選んでね（最大8人）")
-          .setMinValues(1)
-          .setMaxValues(8)
-          .addOptions(
-            players.map((p) => ({
-              label: p.player,
-              value: p.player,
-            })),
-          );
-
-        const row = new ActionRowBuilder().addComponents(menu);
-
-        return interaction.reply({
-          content: "プレイヤーを選んでね！（最大8人）",
-          components: [row],
-        });
-      }
-    }
   }
 });
 
