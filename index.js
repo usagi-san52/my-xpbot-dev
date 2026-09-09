@@ -15,18 +15,42 @@ const client = new Client({
   ],
 });
 
-// ブキ・サブ・スペ
-const quizWeapons = [
-  { name: "スプラシューター", sub: "クイックボム", sp: "ウルトラショット" },
-  {
-    name: "スプラシューターコラボ",
-    sub: "クイックボム",
-    sp: "ウルトラショット",
-  },
-  { name: "N-ZAP85", sub: "キューバンボム", sp: "エナジースタンド" },
-];
+// ===============================
+// 1. ブキ辞書
+// ===============================
+const quizWeapons = {
+  "クイックボム+ウルトラショット": ["カーボンローラーデコ"],
+  "キューバンボム+ウルトラショット": [
+    "オーダーシューターレプリカ",
+    "スプラシューター",
+    "ヒーローシューターレプリカ",
+  ],
+  "スプラッシュシールド+ウルトラショット": [
+    "ボトルガイザー",
+    "フィンセントBRNZ",
+  ],
+  "ポイントセンサー+ウルトラショット": [
+    "スクリュースロッシャーネオ",
+    "ケルビン525デコ",
+  ],
+  "トラップ+ウルトラショット": ["キャンピングシェルターソレーラ"],
+  "スプラッシュボム+ウルトラショット": ["クラッシュブラスター"],
+  "カーリングボム+ウルトラショット": ["ドライブワイパーRUST"],
+  "ジャンプビーコン+ウルトラショット": ["スプラスピナーPYTN"],
 
+  "キューバンボム+エナジースタンド": ["N-ZAP85", "シャープマーカー"],
+  "スプラッシュボム+グレートバリア": ["わかばシューター"],
+  // ← M がここに追加していく
+};
+
+// ===============================
+// 2. 全ブキ一覧（SelectMenu用）
+// ===============================
+const allWeaponNames = Object.values(quizWeapons).flat();
+
+// ===============================
 // 連続正解メッセージ（10回まで）
+// ===============================
 const streakMessages = [
   "いいね！調子出てきた！",
   "その調子！まだいける！",
@@ -40,8 +64,42 @@ const streakMessages = [
   "🎉 10連続正解！すごい！！ 🎉",
 ];
 
-// ユーザーごとのゲーム状態
+// ユーザーごとのゲーム状態保存
 const quizState = {};
+
+// ===============================
+// 5. SelectMenu 多段生成
+// ===============================
+const {
+  ActionRowBuilder,
+  StringSelectMenuBuilder,
+  EmbedBuilder,
+} = require("discord.js");
+
+function createPagedMenus(items, customIdBase) {
+  const menus = [];
+  const pageSize = 25;
+
+  for (let i = 0; i < items.length; i += pageSize) {
+    const pageItems = items.slice(i, i + pageSize);
+
+    const menu = new StringSelectMenuBuilder()
+      .setCustomId(`${customIdBase}_${menus.length}`)
+      .setPlaceholder(`ブキを選んでね（ページ ${menus.length + 1}）`)
+      .setMinValues(0)
+      .setMaxValues(pageItems.length)
+      .addOptions(
+        pageItems.map((name) => ({
+          label: name,
+          value: name,
+        })),
+      );
+
+    menus.push(new ActionRowBuilder().addComponents(menu));
+  }
+
+  return menus;
+}
 
 // ブキ一覧
 const weapons = [
@@ -620,41 +678,36 @@ client.on("messageCreate", async (message) => {
   // ① サブ＋スペシャル当てゲーム開始
   // -------------------------
   if (message.content === "!quiz1") {
-    const { ActionRowBuilder, StringSelectMenuBuilder } = require("discord.js");
+    const keys = Object.keys(quizWeapons);
 
-    // ランダムで1つのブキを選ぶ
-    const randomWeapon =
-      quizWeapons[Math.floor(Math.random() * quizWeapons.length)];
-    const sub = randomWeapon.sub;
-    const sp = randomWeapon.sp;
+    // ランダムで組み合わせを選ぶ
+    const randomKey = keys[Math.floor(Math.random() * keys.length)];
+    const [sub, sp] = randomKey.split("+");
 
-    // 同じ組み合わせのブキを全部抽出（正解リスト）
-    const answers = quizWeapons.filter((w) => w.sub === sub && w.sp === sp);
+    // 正解ブキ一覧
+    const answers = quizWeapons[randomKey];
 
-    // 全ブキを選択肢にする（複数選択可能）
-    const menu = new StringSelectMenuBuilder()
-      .setCustomId("subsp_quiz_select")
-      .setPlaceholder("ブキを選んでね（複数選択OK）")
-      .setMinValues(1)
-      .setMaxValues(answers.length) // 正解数まで選べる
-      .addOptions(
-        quizWeapons.map((w) => ({
-          label: w.name,
-          value: w.name,
-        })),
-      );
+    // SelectMenu（複数ページ対応）
+    const menus = createPagedMenus(allWeaponNames, "subsp_quiz_select");
 
-    const row = new ActionRowBuilder().addComponents(menu);
-
-    // 正解リストを保存（ユーザーごと）
+    // ゲーム状態保存
     quizState[message.author.id] = {
-      answers: answers.map((a) => a.name),
+      answers,
       streak: quizState[message.author.id]?.streak || 0,
+      selected: [],
     };
 
+    // Embed
+    const embed = new EmbedBuilder()
+      .setTitle("🎯 サブ＋スペシャル当てゲーム")
+      .setDescription(
+        `**サブ：${sub}**\n**スペシャル：${sp}**\n\nこの組み合わせのブキを全部選んでね！\n（複数ページのメニューから選んでOK）`,
+      )
+      .setColor(0x00aeef);
+
     return message.reply({
-      content: `🎯 **サブ：${sub}**\n🎯 **スペシャル：${sp}**\n\nこの組み合わせのブキを全部選んでね！`,
-      components: [row],
+      embeds: [embed],
+      components: menus,
     });
   }
 });
@@ -861,36 +914,37 @@ client.on("interactionCreate", async (interaction) => {
   // -------------------------
   // ② 回答チェック
   // -------------------------
-  if (interaction.customId !== "subsp_quiz_select") return;
+  if (!interaction.customId.startsWith("subsp_quiz_select")) return;
 
   const userId = interaction.user.id;
   const state = quizState[userId];
   if (!state) return interaction.reply("ゲームが開始されていません！");
 
-  const selected = interaction.values; // ユーザーの回答
-  const correct = state.answers;
+  // 選択されたブキを蓄積
+  state.selected = [...new Set([...state.selected, ...interaction.values])];
 
-  // 全部正解しているか？
-  const isCorrect = correct.every((c) => selected.includes(c));
+  // 正解判定
+  const isCorrect = state.answers.every((a) => state.selected.includes(a));
 
   if (isCorrect) {
-    // 連続正解数アップ
     state.streak++;
 
-    // メッセージ選択（最大10）
     const msgIndex = Math.min(state.streak - 1, streakMessages.length - 1);
     const streakMsg = streakMessages[msgIndex];
 
-    return interaction.reply(
-      `🎉 **正解！**\n${streakMsg}\n\n現在の連続正解数：**${state.streak}**`,
-    );
-  } else {
-    // 不正解 → streakリセット
-    state.streak = 0;
+    const embed = new EmbedBuilder()
+      .setTitle("🎉 正解！")
+      .setDescription(`${streakMsg}\n\n現在の連続正解数：**${state.streak}**`)
+      .setColor(0xffd700);
 
-    return interaction.reply(
-      `❌ **不正解！**\n正解は：${correct.join(", ")}\n\n連続正解数：0 にリセットされたよ。`,
-    );
+    return interaction.reply({ embeds: [embed] });
+  } else {
+    const embed = new EmbedBuilder()
+      .setTitle("📝 選択を記録したよ")
+      .setDescription("まだ他にも正解があるよ！")
+      .setColor(0x00aeef);
+
+    return interaction.reply({ embeds: [embed], ephemeral: true });
   }
 });
 
