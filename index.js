@@ -272,7 +272,7 @@ function createPagedMenus(items, customIdBase) {
       .setCustomId(`${customIdBase}_${menus.length}`)
       .setPlaceholder(`ブキを選んでね（ページ ${menus.length + 1}）`)
       .setMinValues(0)
-      .setMaxValues(pageItems.length)
+      .setMaxValues(allWeaponNames.length)
       .addOptions(
         pageItems.map((name) => ({
           label: name,
@@ -783,6 +783,42 @@ client.on("messageCreate", async (message) => {
   }
 
   // -------------------------
+  // ② 回答チェック
+  // -------------------------
+  if (!interaction.customId.startsWith("quiz1_select")) return;
+
+  const userId = interaction.user.id;
+  const state = quizState[userId];
+  if (!state) return interaction.reply("ゲームが開始されていません！");
+
+  // 選択されたブキを蓄積
+  state.selected = [...new Set([...state.selected, ...interaction.values])];
+
+  // 正解判定
+  const isCorrect = state.answers.every((a) => state.selected.includes(a));
+
+  if (isCorrect) {
+    state.streak++;
+
+    const msgIndex = Math.min(state.streak - 1, streakMessages.length - 1);
+    const streakMsg = streakMessages[msgIndex];
+
+    const embed = new EmbedBuilder()
+      .setTitle("🎉 正解！")
+      .setDescription(`${streakMsg}\n\n現在の連続正解数：**${state.streak}**`)
+      .setColor(0xffd700);
+
+    return interaction.reply({ embeds: [embed] });
+  } else {
+    const embed = new EmbedBuilder()
+      .setTitle("📝 選択を記録したよ")
+      .setDescription("まだ他にも正解があるよ！")
+      .setColor(0x00aeef);
+
+    return interaction.reply({ embeds: [embed], ephemeral: true });
+  }
+
+  // -------------------------
   // ⑮ プレイヤー選択 → チーム分け UI（最大50人対応）
   // -------------------------
   if (message.content === "!team") {
@@ -892,7 +928,7 @@ client.on("messageCreate", async (message) => {
 
     return message.reply({
       embeds: [embed],
-      components: menus,
+      components: [...menus],
     });
   }
 });
@@ -1094,42 +1130,6 @@ client.on("interactionCreate", async (interaction) => {
         `**ブラボーチーム (合計XP: ${sumB})**\n${teamBList}\n\n` +
         `XP差: ${bestDiff}`,
     );
-  }
-
-  // -------------------------
-  // ② 回答チェック
-  // -------------------------
-  if (!interaction.customId.startsWith("quiz1_select")) return;
-
-  const userId = interaction.user.id;
-  const state = quizState[userId];
-  if (!state) return interaction.reply("ゲームが開始されていません！");
-
-  // 選択されたブキを蓄積
-  state.selected = [...new Set([...state.selected, ...interaction.values])];
-
-  // 正解判定
-  const isCorrect = state.answers.every((a) => state.selected.includes(a));
-
-  if (isCorrect) {
-    state.streak++;
-
-    const msgIndex = Math.min(state.streak - 1, streakMessages.length - 1);
-    const streakMsg = streakMessages[msgIndex];
-
-    const embed = new EmbedBuilder()
-      .setTitle("🎉 正解！")
-      .setDescription(`${streakMsg}\n\n現在の連続正解数：**${state.streak}**`)
-      .setColor(0xffd700);
-
-    return interaction.reply({ embeds: [embed] });
-  } else {
-    const embed = new EmbedBuilder()
-      .setTitle("📝 選択を記録したよ")
-      .setDescription("まだ他にも正解があるよ！")
-      .setColor(0x00aeef);
-
-    return interaction.reply({ embeds: [embed], ephemeral: true });
   }
 });
 
