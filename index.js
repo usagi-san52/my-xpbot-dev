@@ -873,7 +873,7 @@ client.on("messageCreate", async (message) => {
     const answers = quizWeapons[randomKey];
 
     // SelectMenu（複数ページ対応）
-    const menus = createPagedMenus(allWeaponNames, "subsp_quiz_select");
+    const menus = createPagedMenus(allWeaponNames, "quiz1_select");
 
     // ゲーム状態保存
     quizState[message.author.id] = {
@@ -1099,7 +1099,7 @@ client.on("interactionCreate", async (interaction) => {
   // -------------------------
   // ② 回答チェック
   // -------------------------
-  if (!interaction.customId.startsWith("subsp_quiz_select")) return;
+  if (!interaction.customId.startsWith("quiz1_select")) return;
 
   const userId = interaction.user.id;
   const state = quizState[userId];
