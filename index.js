@@ -662,6 +662,43 @@ client.on("messageCreate", async (message) => {
   }
 
   // -------------------------
+  // ① サブ＋スペシャル当てゲーム開始
+  // -------------------------
+  if (message.content === "!quiz1") {
+    const keys = Object.keys(quizWeapons);
+
+    // ランダムで組み合わせを選ぶ
+    const randomKey = keys[Math.floor(Math.random() * keys.length)];
+    const [sub, sp] = randomKey.split("+");
+
+    // 正解ブキ一覧
+    const answers = quizWeapons[randomKey];
+
+    // SelectMenu（複数ページ対応）
+    const menus = createPagedMenus(allWeaponNames, "quiz1_select");
+
+    // ゲーム状態保存
+    quizState[message.author.id] = {
+      answers,
+      streak: quizState[message.author.id]?.streak || 0,
+      selected: [],
+    };
+
+    // Embed
+    const embed = new EmbedBuilder()
+      .setTitle("🎯 サブ＋スペシャル当てゲーム")
+      .setDescription(
+        `**サブ：${sub}**\n**スペシャル：${sp}**\n\nこの組み合わせのブキを全部選んでね！\n（複数ページのメニューから選んでOK）`,
+      )
+      .setColor(0x00aeef);
+
+    return message.reply({
+      embeds: [embed],
+      components: [...menus],
+    });
+  }
+
+  // -------------------------
   // ⑦ !team プレイヤー名...
   // -------------------------
   if (message.content.startsWith("!team2 ")) {
@@ -856,43 +893,6 @@ client.on("messageCreate", async (message) => {
     return message.reply({
       content: "ブキ抽選モードを選んでね！",
       components: [row],
-    });
-  }
-
-  // -------------------------
-  // ① サブ＋スペシャル当てゲーム開始
-  // -------------------------
-  if (message.content === "!quiz1") {
-    const keys = Object.keys(quizWeapons);
-
-    // ランダムで組み合わせを選ぶ
-    const randomKey = keys[Math.floor(Math.random() * keys.length)];
-    const [sub, sp] = randomKey.split("+");
-
-    // 正解ブキ一覧
-    const answers = quizWeapons[randomKey];
-
-    // SelectMenu（複数ページ対応）
-    const menus = createPagedMenus(allWeaponNames, "quiz1_select");
-
-    // ゲーム状態保存
-    quizState[message.author.id] = {
-      answers,
-      streak: quizState[message.author.id]?.streak || 0,
-      selected: [],
-    };
-
-    // Embed
-    const embed = new EmbedBuilder()
-      .setTitle("🎯 サブ＋スペシャル当てゲーム")
-      .setDescription(
-        `**サブ：${sub}**\n**スペシャル：${sp}**\n\nこの組み合わせのブキを全部選んでね！\n（複数ページのメニューから選んでOK）`,
-      )
-      .setColor(0x00aeef);
-
-    return message.reply({
-      embeds: [embed],
-      components: [...menus],
     });
   }
 });
