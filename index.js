@@ -16,7 +16,7 @@ const client = new Client({
 });
 
 // ブキ・サブ・スペ
-const weapons2 = [
+const quizWeapons = [
   { name: "スプラシューター", sub: "クイックボム", sp: "ウルトラショット" },
   {
     name: "スプラシューターコラボ",
@@ -623,12 +623,13 @@ client.on("messageCreate", async (message) => {
     const { ActionRowBuilder, StringSelectMenuBuilder } = require("discord.js");
 
     // ランダムで1つのブキを選ぶ
-    const randomWeapon = weapons[Math.floor(Math.random() * weapons.length)];
+    const randomWeapon =
+      quizWeapons[Math.floor(Math.random() * quizWeapons.length)];
     const sub = randomWeapon.sub;
     const sp = randomWeapon.sp;
 
     // 同じ組み合わせのブキを全部抽出（正解リスト）
-    const answers = weapons.filter((w) => w.sub === sub && w.sp === sp);
+    const answers = quizWeapons.filter((w) => w.sub === sub && w.sp === sp);
 
     // 全ブキを選択肢にする（複数選択可能）
     const menu = new StringSelectMenuBuilder()
@@ -637,7 +638,7 @@ client.on("messageCreate", async (message) => {
       .setMinValues(1)
       .setMaxValues(answers.length) // 正解数まで選べる
       .addOptions(
-        weapons.map((w) => ({
+        quizWeapons.map((w) => ({
           label: w.name,
           value: w.name,
         })),
