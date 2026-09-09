@@ -477,10 +477,10 @@ client.on("messageCreate", async (message) => {
 
     return message.reply(
       `入力人数: ${players.length}人\n` +
-        `Aチーム人数: ${teamA_size}\n` +
-        `Bチーム人数: ${teamB_size}\n\n` +
-        `**Aチーム (合計XP: ${sumA})**\n${teamAList}\n\n` +
-        `**Bチーム (合計XP: ${sumB})**\n${teamBList}\n\n` +
+        `アルファチーム人数: ${teamA_size}\n` +
+        `ブラボーチーム人数: ${teamB_size}\n\n` +
+        `**アルファチーム (合計XP: ${sumA})**\n${teamAList}\n\n` +
+        `**ブラボーチーム (合計XP: ${sumB})**\n${teamBList}\n\n` +
         `XP差: ${finalDiff}（許容200）`,
     );
   }
@@ -642,7 +642,7 @@ client.on("interactionCreate", async (interaction) => {
     // ① 1種類だけ選ぶ
     if (mode === "single") {
       const weapon = weapons[Math.floor(Math.random() * weapons.length)];
-      return interaction.reply(`🎯 今日のブキは **${weapon}** だよ！`);
+      return interaction.reply(`🎯 今回のブキは **${weapon}** だよ！`);
     }
 
     // ② プレイヤー選択 UI を表示（最大8人）
@@ -774,10 +774,10 @@ client.on("interactionCreate", async (interaction) => {
 
     return interaction.editReply(
       `🎯 **選択人数: ${selectedPlayers.length}人**\n` +
-        `Aチーム人数: ${teamA_size}\n` +
-        `Bチーム人数: ${teamB_size}\n\n` +
-        `**Aチーム (合計XP: ${sumA})**\n${teamAList}\n\n` +
-        `**Bチーム (合計XP: ${sumB})**\n${teamBList}\n\n` +
+        `アルファチーム人数: ${teamA_size}\n` +
+        `ブラボーチーム人数: ${teamB_size}\n\n` +
+        `**アルファチーム (合計XP: ${sumA})**\n${teamAList}\n\n` +
+        `**ブラボーチーム (合計XP: ${sumB})**\n${teamBList}\n\n` +
         `XP差: ${bestDiff}`,
     );
   }
