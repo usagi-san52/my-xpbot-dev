@@ -272,7 +272,7 @@ function createPagedMenus(items, customIdBase) {
       .setCustomId(`${customIdBase}_${menus.length}`)
       .setPlaceholder(`ブキを選んでね（ページ ${menus.length + 1}）`)
       .setMinValues(0)
-      .setMaxValues(allWeaponNames.length)
+      .setMaxValues(pageItems.length)
       .addOptions(
         pageItems.map((name) => ({
           label: name,
