@@ -903,37 +903,41 @@ client.on("interactionCreate", async (interaction) => {
   // -------------------------
   // ② 回答チェック
   // -------------------------
-  if (!interaction.customId.startsWith("quiz1_select")) return;
+  if (interaction.customId.startsWith("quiz1_select")) {
+    const userId = interaction.user.id;
+    const state = quizState[userId];
+    if (!state) {
+      return interaction.reply({
+        content: "ゲームが開始されていません！先に `!quiz1` を打ってね。",
+        ephemeral: true,
+      });
+    }
 
-  const userId = interaction.user.id;
-  const state = quizState[userId];
-  if (!state) return interaction.reply("ゲームが開始されていません！");
+    // 選択されたブキを蓄積
+    state.selected = [...new Set([...state.selected, ...interaction.values])];
 
-  // 選択されたブキを蓄積
-  state.selected = [...new Set([...state.selected, ...interaction.values])];
+    // 正解判定
+    const isCorrect = state.answers.every((a) => state.selected.includes(a));
 
-  // 正解判定
-  const isCorrect = state.answers.every((a) => state.selected.includes(a));
+    if (isCorrect) {
+      state.streak++;
+      const msgIndex = Math.min(state.streak - 1, streakMessages.length - 1);
+      const streakMsg = streakMessages[msgIndex];
 
-  if (isCorrect) {
-    state.streak++;
+      const embed = new EmbedBuilder()
+        .setTitle("🎉 正解！")
+        .setDescription(`${streakMsg}\n\n現在の連続正解数：**${state.streak}**`)
+        .setColor(0xffd700);
 
-    const msgIndex = Math.min(state.streak - 1, streakMessages.length - 1);
-    const streakMsg = streakMessages[msgIndex];
+      return interaction.reply({ embeds: [embed] });
+    } else {
+      const embed = new EmbedBuilder()
+        .setTitle("📝 選択を記録したよ")
+        .setDescription("まだ他にも正解があるよ！")
+        .setColor(0x00aeef);
 
-    const embed = new EmbedBuilder()
-      .setTitle("🎉 正解！")
-      .setDescription(`${streakMsg}\n\n現在の連続正解数：**${state.streak}**`)
-      .setColor(0xffd700);
-
-    return interaction.reply({ embeds: [embed] });
-  } else {
-    const embed = new EmbedBuilder()
-      .setTitle("📝 選択を記録したよ")
-      .setDescription("まだ他にも正解があるよ！")
-      .setColor(0x00aeef);
-
-    return interaction.reply({ embeds: [embed], ephemeral: true });
+      return interaction.reply({ embeds: [embed], ephemeral: true });
+    }
   }
 
   // ルール選択
