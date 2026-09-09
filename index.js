@@ -15,6 +15,34 @@ const client = new Client({
   ],
 });
 
+// ブキ・サブ・スペ
+const weapons2 = [
+  { name: "スプラシューター", sub: "クイックボム", sp: "ウルトラショット" },
+  {
+    name: "スプラシューターコラボ",
+    sub: "クイックボム",
+    sp: "ウルトラショット",
+  },
+  { name: "N-ZAP85", sub: "キューバンボム", sp: "エナジースタンド" },
+];
+
+// 連続正解メッセージ（10回まで）
+const streakMessages = [
+  "いいね！調子出てきた！",
+  "その調子！まだいける！",
+  "おお、連続正解！",
+  "キレてるね！",
+  "半分突破！すごい！",
+  "勢い止まらん！",
+  "強すぎる！",
+  "天才か？",
+  "神がかってる！",
+  "🎉 10連続正解！すごい！！ 🎉",
+];
+
+// ユーザーごとのゲーム状態
+const quizState = {};
+
 // ブキ一覧
 const weapons = [
   // シューター
@@ -587,6 +615,47 @@ client.on("messageCreate", async (message) => {
       components: [row],
     });
   }
+
+  // -------------------------
+  // ① サブ＋スペシャル当てゲーム開始
+  // -------------------------
+  if (message.content === "!quiz1") {
+    const { ActionRowBuilder, StringSelectMenuBuilder } = require("discord.js");
+
+    // ランダムで1つのブキを選ぶ
+    const randomWeapon = weapons[Math.floor(Math.random() * weapons.length)];
+    const sub = randomWeapon.sub;
+    const sp = randomWeapon.sp;
+
+    // 同じ組み合わせのブキを全部抽出（正解リスト）
+    const answers = weapons.filter((w) => w.sub === sub && w.sp === sp);
+
+    // 全ブキを選択肢にする（複数選択可能）
+    const menu = new StringSelectMenuBuilder()
+      .setCustomId("subsp_quiz_select")
+      .setPlaceholder("ブキを選んでね（複数選択OK）")
+      .setMinValues(1)
+      .setMaxValues(answers.length) // 正解数まで選べる
+      .addOptions(
+        weapons.map((w) => ({
+          label: w.name,
+          value: w.name,
+        })),
+      );
+
+    const row = new ActionRowBuilder().addComponents(menu);
+
+    // 正解リストを保存（ユーザーごと）
+    quizState[message.author.id] = {
+      answers: answers.map((a) => a.name),
+      streak: quizState[message.author.id]?.streak || 0,
+    };
+
+    return message.reply({
+      content: `🎯 **サブ：${sub}**\n🎯 **スペシャル：${sp}**\n\nこの組み合わせのブキを全部選んでね！`,
+      components: [row],
+    });
+  }
 });
 
 client.on("interactionCreate", async (interaction) => {
@@ -635,7 +704,9 @@ client.on("interactionCreate", async (interaction) => {
     );
   }
 
+  // -------------------------
   // ブキ抽選モード選択
+  // -------------------------
   if (interaction.customId === "weapon_mode_select") {
     const mode = interaction.values[0];
 
@@ -680,7 +751,9 @@ client.on("interactionCreate", async (interaction) => {
     }
   }
 
+  // -------------------------
   // ブキ割り当て（選んだプレイヤーに割り当て）
+  // -------------------------
   if (interaction.customId === "weapon_player_select") {
     await interaction.deferReply();
 
@@ -708,7 +781,9 @@ client.on("interactionCreate", async (interaction) => {
     );
   }
 
+  // -------------------------
   // チーム分け（50人対応）
+  // -------------------------
   if (
     interaction.customId === "player_team_select_1" ||
     interaction.customId === "player_team_select_2"
@@ -779,6 +854,41 @@ client.on("interactionCreate", async (interaction) => {
         `**アルファチーム (合計XP: ${sumA})**\n${teamAList}\n\n` +
         `**ブラボーチーム (合計XP: ${sumB})**\n${teamBList}\n\n` +
         `XP差: ${bestDiff}`,
+    );
+  }
+
+  // -------------------------
+  // ② 回答チェック
+  // -------------------------
+  if (interaction.customId !== "subsp_quiz_select") return;
+
+  const userId = interaction.user.id;
+  const state = quizState[userId];
+  if (!state) return interaction.reply("ゲームが開始されていません！");
+
+  const selected = interaction.values; // ユーザーの回答
+  const correct = state.answers;
+
+  // 全部正解しているか？
+  const isCorrect = correct.every((c) => selected.includes(c));
+
+  if (isCorrect) {
+    // 連続正解数アップ
+    state.streak++;
+
+    // メッセージ選択（最大10）
+    const msgIndex = Math.min(state.streak - 1, streakMessages.length - 1);
+    const streakMsg = streakMessages[msgIndex];
+
+    return interaction.reply(
+      `🎉 **正解！**\n${streakMsg}\n\n現在の連続正解数：**${state.streak}**`,
+    );
+  } else {
+    // 不正解 → streakリセット
+    state.streak = 0;
+
+    return interaction.reply(
+      `❌ **不正解！**\n正解は：${correct.join(", ")}\n\n連続正解数：0 にリセットされたよ。`,
     );
   }
 });
