@@ -1,4 +1,13 @@
-const { Client, GatewayIntentBits } = require("discord.js");
+const {
+  Client,
+  GatewayIntentBits,
+  EmbedBuilder,
+  ActionRowBuilder,
+  StringSelectMenuBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+} = require("discord.js");
+
 const { createClient } = require("@supabase/supabase-js");
 
 // Supabase クライアント
