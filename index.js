@@ -682,7 +682,7 @@ async function listPlayers(guildId) {
   return data ?? [];
 }
 
-// カテゴリを4つずつに分割する関数
+// カテゴリ3つずつに分割する関数
 function chunkCategories(categories) {
   const chunkSize = 3;
   const chunks = [];
@@ -969,7 +969,7 @@ client.on("messageCreate", async (message) => {
 
     await message.reply({ embeds: [embed] });
 
-    // ★ 4カテゴリまとめ UI を表示
+    // ★ 3カテゴリまとめ UI を表示
     showCategoryGroupMenu(message.channel, userId);
   }
 
@@ -1174,90 +1174,77 @@ client.on("messageCreate", async (message) => {
 
 client.on("interactionCreate", async (interaction) => {
   const userId = interaction.user.id;
+  const state = quizState[userId];
+  if (!state) return; // クイズ中じゃないなら無視
 
-  // ============================================================
-  // クイズ関連の処理（customId で判定する）
-  // ============================================================
-  if (
-    interaction.customId.startsWith("quiz_select_weapon_") || // 武器選択（カテゴリ名＋ページ番号）
-    interaction.customId === "quiz_next_group" || // 次のカテゴリグループへ
-    interaction.customId === "quiz_decide" // 決定ボタン
-  ) {
-    const state = quizState[userId];
-    if (!state) return; // クイズ中じゃないなら無視
+  // -------------------------
+  // 武器選択（カテゴリ名＋ページ番号）
+  // -------------------------
+  if (interaction.customId.startsWith("quiz_select_weapon_")) {
+    const selected = interaction.values; // 武器名だけが入る
 
-    // -------------------------
-    // 武器選択（カテゴリ名＋ページ番号）
-    // -------------------------
-    if (interaction.customId.startsWith("quiz_select_weapon_")) {
-      const userId = interaction.user.id;
-      const selected = interaction.values; // ← ここは武器名だけが入る
+    // ★ 選択された武器を蓄積（重複なし）
+    state.selectedWeapons = [
+      ...new Set([...state.selectedWeapons, ...selected]),
+    ];
 
-      // ★ 選択された武器を蓄積（重複なし）
-      quizState[userId].selectedWeapons = [
-        ...new Set([...quizState[userId].selectedWeapons, ...selected]),
-      ];
+    await interaction.deferUpdate(); // タイムアウト防止
+    return;
+  }
 
-      await interaction.deferUpdate(); // タイムアウト防止
-      return;
-    }
+  // -------------------------
+  // 次のカテゴリグループへ
+  // -------------------------
+  if (interaction.customId === "quiz_next_group") {
+    state.currentGroupIndex++;
 
-    // -------------------------
-    // 次のカテゴリグループへ
-    // -------------------------
-    if (interaction.customId === "quiz_next_group") {
-      state.currentGroupIndex++;
+    // 全カテゴリグループ終了
+    if (state.currentGroupIndex >= state.categoryChunks.length) {
+      const decideButton = new ButtonBuilder()
+        .setCustomId("quiz_decide")
+        .setLabel("決定")
+        .setStyle(ButtonStyle.Primary);
 
-      // 全カテゴリグループ終了
-      if (state.currentGroupIndex >= state.categoryChunks.length) {
-        const decideButton = new ButtonBuilder()
-          .setCustomId("quiz_decide")
-          .setLabel("決定")
-          .setStyle(ButtonStyle.Primary);
+      const row = new ActionRowBuilder().addComponents(decideButton);
 
-        const row = new ActionRowBuilder().addComponents(decideButton);
-
-        await interaction.update({
-          content: "全カテゴリの選択が終わったよ！「決定」で判定するね。",
-          components: [row],
-        });
-
-        return;
-      }
-
-      // 次のカテゴリグループへ
       await interaction.update({
-        content: "次のカテゴリに進むよ！",
-        components: [],
+        content: "全カテゴリの選択が終わったよ！「決定」で判定するね。",
+        components: [row],
       });
 
-      showCategoryGroupMenu(interaction.channel, userId);
       return;
     }
 
-    // -------------------------
-    // 決定ボタン
-    // -------------------------
-    if (interaction.customId === "quiz_decide") {
-      const selected = state.selectedWeapons;
-      const answers = state.answers;
+    // 次のカテゴリグループへ
+    await interaction.update({
+      content: "次のカテゴリに進むよ！",
+      components: [],
+    });
 
-      const isCorrect =
-        answers.every((a) => selected.includes(a)) &&
-        selected.length === answers.length;
+    showCategoryGroupMenu(interaction.channel, userId);
+    return;
+  }
 
-      const embed = new EmbedBuilder()
-        .setTitle(isCorrect ? "🎉 正解！" : "❌ 不正解…")
-        .setDescription(
-          `正解ブキ：\n${answers.join("\n")}\n\nあなたの選択：\n${selected.join("\n")}`,
-        )
-        .setColor(isCorrect ? 0xffd700 : 0xff0000);
+  // -------------------------
+  // 決定ボタン
+  // -------------------------
+  if (interaction.customId === "quiz_decide") {
+    const selected = state.selectedWeapons;
+    const answers = state.answers;
 
-      await interaction.reply({ embeds: [embed] });
-      return;
-    }
+    const isCorrect =
+      answers.every((a) => selected.includes(a)) &&
+      selected.length === answers.length;
 
-    return; // ★ クイズ処理はここで終了
+    const embed = new EmbedBuilder()
+      .setTitle(isCorrect ? "🎉 正解！" : "❌ 不正解…")
+      .setDescription(
+        `正解ブキ：\n${answers.join("\n")}\n\nあなたの選択：\n${selected.join("\n")}`,
+      )
+      .setColor(isCorrect ? 0xffd700 : 0xff0000);
+
+    await interaction.reply({ embeds: [embed] });
+    return;
   }
 
   // ============================================================
