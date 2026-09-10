@@ -684,7 +684,7 @@ async function listPlayers(guildId) {
 
 // カテゴリを4つずつに分割する関数
 function chunkCategories(categories) {
-  const chunkSize = 4;
+  const chunkSize = 3;
   const chunks = [];
 
   for (let i = 0; i < categories.length; i += chunkSize) {
@@ -694,7 +694,7 @@ function chunkCategories(categories) {
   return chunks;
 }
 
-// 4カテゴリまとめて武器選択メニューを出す関数
+// 3カテゴリまとめ方式：完全動作版
 function showCategoryGroupMenu(channel, userId) {
   const state = quizState[userId];
   const group = state.categoryChunks[state.currentGroupIndex];
@@ -704,7 +704,7 @@ function showCategoryGroupMenu(channel, userId) {
   for (const category of group) {
     const weapons = weaponCategories[category];
 
-    // 25件ずつページング
+    // ★ カテゴリごとに25件ずつページング
     for (let i = 0; i < weapons.length; i += 25) {
       const pageItems = weapons.slice(i, i + 25);
 
@@ -724,24 +724,21 @@ function showCategoryGroupMenu(channel, userId) {
     }
   }
 
-  // 次のカテゴリグループへ
+  // ★ 次へ＋決定ボタンを同じ行にまとめる（行数節約）
   const nextButton = new ButtonBuilder()
     .setCustomId("quiz_next_group")
-    .setLabel("次のカテゴリへ")
+    .setLabel("次へ")
     .setStyle(ButtonStyle.Secondary);
 
-  rows.push(new ActionRowBuilder().addComponents(nextButton));
-
-  // 決定ボタン
   const decideButton = new ButtonBuilder()
     .setCustomId("quiz_decide")
     .setLabel("決定")
     .setStyle(ButtonStyle.Primary);
 
-  rows.push(new ActionRowBuilder().addComponents(decideButton));
+  rows.push(new ActionRowBuilder().addComponents(nextButton, decideButton));
 
   const embed = new EmbedBuilder()
-    .setTitle("武器選択（4カテゴリまとめて）")
+    .setTitle("武器選択（3カテゴリまとめ）")
     .setDescription(`今回のカテゴリ：${group.join(" / ")}`);
 
   channel.send({ embeds: [embed], components: rows });
