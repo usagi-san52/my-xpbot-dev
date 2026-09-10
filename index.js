@@ -682,6 +682,71 @@ async function listPlayers(guildId) {
   return data ?? [];
 }
 
+// カテゴリを4つずつに分割する関数
+function chunkCategories(categories) {
+  const chunkSize = 4;
+  const chunks = [];
+
+  for (let i = 0; i < categories.length; i += chunkSize) {
+    chunks.push(categories.slice(i, i + chunkSize));
+  }
+
+  return chunks;
+}
+
+// 4カテゴリまとめて武器選択メニューを出す関数
+function showCategoryGroupMenu(channel, userId) {
+  const state = quizState[userId];
+  const group = state.categoryChunks[state.currentGroupIndex];
+
+  const rows = [];
+
+  for (const category of group) {
+    const weapons = weaponCategories[category];
+
+    // 25件ずつページング
+    for (let i = 0; i < weapons.length; i += 25) {
+      const pageItems = weapons.slice(i, i + 25);
+
+      const menu = new StringSelectMenuBuilder()
+        .setCustomId(`quiz_select_weapon_${category}_${i / 25}`)
+        .setPlaceholder(`${category}（ページ ${i / 25 + 1}）`)
+        .setMinValues(0)
+        .setMaxValues(pageItems.length)
+        .addOptions(
+          pageItems.map((w) => ({
+            label: w,
+            value: w,
+          })),
+        );
+
+      rows.push(new ActionRowBuilder().addComponents(menu));
+    }
+  }
+
+  // 次のカテゴリグループへ
+  const nextButton = new ButtonBuilder()
+    .setCustomId("quiz_next_group")
+    .setLabel("次のカテゴリへ")
+    .setStyle(ButtonStyle.Secondary);
+
+  rows.push(new ActionRowBuilder().addComponents(nextButton));
+
+  // 決定ボタン
+  const decideButton = new ButtonBuilder()
+    .setCustomId("quiz_decide")
+    .setLabel("決定")
+    .setStyle(ButtonStyle.Primary);
+
+  rows.push(new ActionRowBuilder().addComponents(decideButton));
+
+  const embed = new EmbedBuilder()
+    .setTitle("武器選択（4カテゴリまとめて）")
+    .setDescription(`今回のカテゴリ：${group.join(" / ")}`);
+
+  channel.send({ embeds: [embed], components: rows });
+}
+
 // ===============================
 // カテゴリ別 SelectMenu を作る
 // ===============================
@@ -935,7 +1000,12 @@ client.on("messageCreate", async (message) => {
     await message.reply({ embeds: [embed] });
 
     // ★ 次にカテゴリ選択メニューを出す
-    showCategoryMenu(message.channel, message.author.id);
+    quizState[message.author.id].categoryChunks = chunkCategories(
+      quizState[message.author.id].categoryOrder,
+    );
+    quizState[message.author.id].currentGroupIndex = 0;
+
+    showCategoryGroupMenu(message.channel, message.author.id);
   }
 
   // -------------------------
@@ -1144,15 +1214,15 @@ client.on("interactionCreate", async (interaction) => {
   // クイズ関連の処理（customId で判定する）
   // ============================================================
   if (
-    interaction.customId.startsWith("quiz_select_weapon_") ||
-    interaction.customId === "quiz_next_category" ||
-    interaction.customId === "quiz_decide"
+    interaction.customId.startsWith("quiz_select_weapon_") || // 武器選択（カテゴリ名＋ページ番号）
+    interaction.customId === "quiz_next_group" || // 次のカテゴリグループへ
+    interaction.customId === "quiz_decide" // 決定ボタン
   ) {
     const state = quizState[userId];
     if (!state) return; // クイズ中じゃないなら無視
 
     // -------------------------
-    // 武器選択（ページ番号つき）
+    // 武器選択（カテゴリ名＋ページ番号）
     // -------------------------
     if (interaction.customId.startsWith("quiz_select_weapon_")) {
       const selected = interaction.values;
@@ -1166,12 +1236,13 @@ client.on("interactionCreate", async (interaction) => {
     }
 
     // -------------------------
-    // 次のカテゴリへ
+    // 次のカテゴリグループへ
     // -------------------------
-    if (interaction.customId === "quiz_next_category") {
-      state.currentCategoryIndex++;
+    if (interaction.customId === "quiz_next_group") {
+      state.currentGroupIndex++;
 
-      if (state.currentCategoryIndex >= state.categoryOrder.length) {
+      // 全カテゴリグループ終了
+      if (state.currentGroupIndex >= state.categoryChunks.length) {
         const decideButton = new ButtonBuilder()
           .setCustomId("quiz_decide")
           .setLabel("決定")
@@ -1187,12 +1258,13 @@ client.on("interactionCreate", async (interaction) => {
         return;
       }
 
+      // 次のカテゴリグループへ
       await interaction.update({
         content: "次のカテゴリに進むよ！",
         components: [],
       });
 
-      showCategoryMenu(interaction.channel, userId);
+      showCategoryGroupMenu(interaction.channel, userId);
       return;
     }
 
