@@ -734,26 +734,42 @@ function showCategoryMenu(channel, userId) {
   const category = state.categoryOrder[state.currentCategoryIndex];
   const weapons = weaponCategories[category];
 
-  const menu = new StringSelectMenuBuilder()
-    .setCustomId("quiz_select_weapon")
-    .setPlaceholder(`${category} のブキを選んでね`)
-    .setMinValues(0)
-    .setMaxValues(Math.min(25, weapons.length))
-    .addOptions(weapons.map((w) => ({ label: w, value: w })));
+  const rows = [];
+  const pageSize = 25;
+
+  // 25件ずつページング
+  for (let i = 0; i < weapons.length; i += pageSize) {
+    const pageItems = weapons.slice(i, i + pageSize);
+
+    const menu = new StringSelectMenuBuilder()
+      .setCustomId(`quiz_select_weapon_${i / pageSize}`)
+      .setPlaceholder(
+        `${category} のブキを選んでね（ページ ${i / pageSize + 1}）`,
+      )
+      .setMinValues(0)
+      .setMaxValues(pageItems.length)
+      .addOptions(
+        pageItems.map((w) => ({
+          label: w,
+          value: w,
+        })),
+      );
+
+    rows.push(new ActionRowBuilder().addComponents(menu));
+  }
 
   const nextButton = new ButtonBuilder()
     .setCustomId("quiz_next_category")
     .setLabel("次のカテゴリへ")
     .setStyle(ButtonStyle.Secondary);
 
-  const row1 = new ActionRowBuilder().addComponents(menu);
-  const row2 = new ActionRowBuilder().addComponents(nextButton);
+  rows.push(new ActionRowBuilder().addComponents(nextButton));
 
   const embed = new EmbedBuilder()
     .setTitle("カテゴリ選択中")
     .setDescription(`今は **${category}** のブキを選んでね`);
 
-  channel.send({ embeds: [embed], components: [row1, row2] });
+  channel.send({ embeds: [embed], components: rows });
 }
 
 client.once("clientReady", () => {
