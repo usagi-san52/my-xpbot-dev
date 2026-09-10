@@ -737,7 +737,6 @@ function showCategoryMenu(channel, userId) {
   const rows = [];
   const pageSize = 25;
 
-  // 25件ずつページング
   for (let i = 0; i < weapons.length; i += pageSize) {
     const pageItems = weapons.slice(i, i + pageSize);
 
@@ -766,7 +765,7 @@ function showCategoryMenu(channel, userId) {
   rows.push(new ActionRowBuilder().addComponents(nextButton));
 
   const embed = new EmbedBuilder()
-    .setTitle("カテゴリ選択中")
+    .setTitle("カテゴリ選択")
     .setDescription(`今は **${category}** のブキを選んでね`);
 
   channel.send({ embeds: [embed], components: rows });
@@ -915,7 +914,7 @@ client.on("messageCreate", async (message) => {
     const [sub, sp] = randomKey.split("+");
     const answers = quizWeapons[randomKey];
 
-    const categoryOrder = Object.keys(weaponCategories); // シューター〜ワイパー
+    const categoryOrder = Object.keys(weaponCategories);
 
     quizState[message.author.id] = {
       answers,
@@ -925,7 +924,17 @@ client.on("messageCreate", async (message) => {
       currentCategoryIndex: 0,
     };
 
-    // 最初のカテゴリを表示
+    // ★ まず問題文を出す
+    const embed = new EmbedBuilder()
+      .setTitle("🎯 サブ＋スペシャル当てゲーム")
+      .setDescription(
+        `**サブ：${sub}**\n**スペシャル：${sp}**\n\nこれらの組み合わせのブキを全部選んでね！`,
+      )
+      .setColor(0x00aeef);
+
+    await message.reply({ embeds: [embed] });
+
+    // ★ 次にカテゴリ選択メニューを出す
     showCategoryMenu(message.channel, message.author.id);
   }
 
