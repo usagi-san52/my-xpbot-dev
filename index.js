@@ -681,26 +681,29 @@ function createCategoryMenus(categories) {
 
   const rows = [];
 
-  // カテゴリごとに SelectMenu を作る
   for (const cat of Object.keys(categories)) {
     const weapons = categories[cat];
 
-    const menu = new StringSelectMenuBuilder()
-      .setCustomId(`quiz_cat_${cat}`)
-      .setPlaceholder(`${cat} のブキを選んでね`)
-      .setMinValues(0)
-      .setMaxValues(Math.min(25, weapons.length)) // Discord 制限
-      .addOptions(
-        weapons.map((w) => ({
-          label: w,
-          value: w,
-        })),
-      );
+    const pageSize = 25;
+    for (let i = 0; i < weapons.length; i += pageSize) {
+      const pageItems = weapons.slice(i, i + pageSize);
 
-    rows.push(new ActionRowBuilder().addComponents(menu));
+      const menu = new StringSelectMenuBuilder()
+        .setCustomId(`quiz_cat_${cat}_${i / pageSize}`)
+        .setPlaceholder(`${cat} のブキを選んでね（ページ ${i / pageSize + 1}）`)
+        .setMinValues(0)
+        .setMaxValues(pageItems.length)
+        .addOptions(
+          pageItems.map((w) => ({
+            label: w,
+            value: w,
+          })),
+        );
+
+      rows.push(new ActionRowBuilder().addComponents(menu));
+    }
   }
 
-  // 最後に「決定」ボタン
   const decideButton = new ButtonBuilder()
     .setCustomId("quiz_decide")
     .setLabel("決定")
