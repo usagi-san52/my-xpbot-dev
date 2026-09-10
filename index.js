@@ -968,9 +968,6 @@ client.on("messageCreate", async (message) => {
       .setColor(0x00aeef);
 
     await message.reply({ embeds: [embed] });
-
-    // ★ 3カテゴリまとめ UI を表示
-    showCategoryGroupMenu(message.channel, userId);
   }
 
   // -------------------------
@@ -1176,6 +1173,19 @@ client.on("interactionCreate", async (interaction) => {
   const userId = interaction.user.id;
   const state = quizState[userId];
   if (!state) return; // クイズ中じゃないなら無視
+
+  // -------------------------
+  // 初期 UI 表示
+  // -------------------------
+  if (interaction.customId === "quiz_start") {
+    await interaction.update({
+      content: "カテゴリを選んでね！",
+      components: [],
+    });
+
+    showCategoryGroupMenu(interaction.channel, userId);
+    return;
+  }
 
   // -------------------------
   // 武器選択（カテゴリ名＋ページ番号）
