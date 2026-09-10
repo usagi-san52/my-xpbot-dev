@@ -933,7 +933,20 @@ client.on("messageCreate", async (message) => {
     const [sub, sp] = randomKey.split("+");
     const answers = quizWeapons[randomKey];
 
-    const categoryOrder = Object.keys(weaponCategories);
+    //    const categoryOrder = Object.keys(weaponCategories);
+    const categoryOrder = [
+      "シューター",
+      "ローラー",
+      "チャージャー",
+      "スロッシャー",
+      "スピナー",
+      "マニューバー",
+      "シェルター",
+      "ブラスター",
+      "フデ",
+      "ストリンガー",
+      "ワイパー",
+    ];
     const userId = message.author.id; // ★ 必須
 
     // ★ 新しいクイズ状態
