@@ -1192,7 +1192,7 @@ client.on("interactionCreate", async (interaction) => {
   // -------------------------
   if (interaction.customId === "quiz_start") {
     await interaction.update({
-      content: "カテゴリを選んでね！",
+      content: "カテゴリから正解のブキを選んでね！（複数可）",
       components: [],
     });
 
