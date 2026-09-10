@@ -17,7 +17,206 @@ const client = new Client({
 
 // ===============================
 // 1. ブキ辞書
+//    ブキカテゴリ定義
 // ===============================
+const weaponCategories = {
+  シューター: [
+    "スプラシューター",
+    "わかばシューター",
+    "プロモデラーMG",
+    "もみじシューター",
+    "N-ZAP85",
+    "スペースシューター",
+    "ボールドマーカー",
+    "プライムシューター",
+    "スプラシューターコラボ",
+    "52ガロン",
+    "N-ZAP89",
+    "スプラシューター煌",
+    "スペースシューターコラボ",
+    "L3リールガン",
+    "ボールドマーカーネオ",
+    "52ガロンデコ",
+    "ジェットスイーパー",
+    "シャープマーカー",
+    "96ガロン",
+    "プロモデラー彩",
+    "L3リールガンD",
+    "ボトルガイザー",
+    "プライムシューターコラボ",
+    "L3リールガン箔",
+    "ジェットスイーパーカスタム",
+    "ジェットスイーパーCOBR",
+    "シャープマーカーネオ",
+    "シャープマーカーGECK",
+    "96ガロンデコ",
+    "プライムシューターFRZN",
+    "H3リールガン",
+    "96ガロン爪",
+    "ボトルガイザーフォイル",
+    "H3リールガンD",
+    "H3リールガンSNAK",
+    "オーダーシューターレプリカ",
+    "オクタシューターレプリカ",
+    "ヒーローシューターレプリカ",
+    "プロモデラーRG",
+  ],
+  ローラー: [
+    "スプラローラー",
+    "カーボンローラー",
+    "スプラローラーコラボ",
+    "ダイナモローラー",
+    "ワイドローラー",
+    "ダイナモローラーテスラ",
+    "ワイドローラーコラボ",
+    "ダイナモローラー冥",
+    "ヴァリアブルローラー",
+    "ワイドローラー惑",
+    "カーボンローラーデコ",
+    "カーボンローラーANGL",
+    "ヴァリアブルローラーフォイル",
+    "オーダーローラーレプリカ",
+  ],
+  チャージャー: [
+    "スプラチャージャー",
+    "スクイックリンα",
+    "スプラチャージャーコラボ",
+    "スプラスコープ",
+    "スプラチャージャーFRST",
+    "スクイックリンβ",
+    "R-PEN/5H",
+    "スプラスコープコラボ",
+    "スプラスコープFRST",
+    "リッター4K",
+    "R-PEN/5B",
+    "リッター4Kカスタム",
+    "14式竹筒銃・甲",
+    "ソイチューバー",
+    "14式竹筒銃・乙",
+    "4Kスコープ",
+    "ソイチューバーカスタム",
+    "4Kスコープカスタム",
+    "オーダーチャージャーレプリカ",
+  ],
+  スロッシャー: [
+    "バケットスロッシャー",
+    "ヒッセン",
+    "バケットスロッシャーデコ",
+    "スクリュースロッシャー",
+    "モップリン",
+    "ヒッセンヒュー",
+    "モップリンD",
+    "オーバーフロッシャー",
+    "ヒッセンASH",
+    "モップリン角",
+    "スクリュースロッシャーネオ",
+    "オーバーフロッシャーデコ",
+    "エクスプロッシャー",
+    "エクスプロッシャーカスタム",
+    "オーダースロッシャーレプリカ",
+  ],
+  スピナー: [
+    "バレルスピナー",
+    "スプラスピナー",
+    "イグザミナー",
+    "バレルスピナーデコ",
+    "イグザミナーヒュー",
+    "ハイドラント",
+    "ハイドラントカスタム",
+    "スプラスピナーコラボ",
+    "ハイドラント圧",
+    "スプラスピナーPYTN",
+    "ノーチラス47",
+    "ノーチラス79",
+    "クーゲルシュライバー",
+    "クーゲルシュライバーヒュー",
+    "オーダースピナーレプリカ",
+  ],
+  マニューバー: [
+    "スプラマニューバー",
+    "デュアルスイーパー",
+    "スプラマニューバーコラボ",
+    "スパッタリー",
+    "スプラマニューバー耀",
+    "デュアルスイーパーカスタム",
+    "クアッドホッパーブラック",
+    "デュアルスイーパー蹄",
+    "ケルビン525",
+    "ガエンFF",
+    "クアッドホッパーホワイト",
+    "スパッタリーヒュー",
+    "ケルビン525デコ",
+    "ガエンFFカスタム",
+    "スパッタリーOWL",
+    "オーダーマニューバーレプリカ",
+  ],
+  シェルター: [
+    "パラシェルター",
+    "24式張替傘・甲",
+    "キャンピングシェルター",
+    "スパイガジェット",
+    "パラシェルターソレーラ",
+    "24式張替傘・乙",
+    "キャンピングシェルターソレーラ",
+    "スパイガジェットソレーラ",
+    "キャンピングシェルターCREM",
+    "スパイガジェット繚",
+    "オーダーシェルターレプリカ",
+  ],
+  ブラスター: [
+    "ホットブラスター",
+    "ラピッドブラスター",
+    "ホットブラスターカスタム",
+    "ホットブラスター艶",
+    "ラピッドブラスターデコ",
+    "ロングブラスター",
+    "ノヴァブラスター",
+    "ロングブラスターカスタム",
+    "S-BLAST92",
+    "クラッシュブラスター",
+    "ノヴァブラスターネオ",
+    "クラッシュブラスターネオ",
+    "Rブラスターエリート",
+    "S-BLAST91",
+    "Rブラスターエリートデコ",
+    "RブラスターエリートWNTR",
+    "オーダーブラスターレプリカ",
+  ],
+  フデ: [
+    "ホクサイ",
+    "パブロ",
+    "ホクサイヒュー",
+    "ホクサイ彗",
+    "フィンセント",
+    "パブロヒュー",
+    "フィンセントヒュー",
+    "フィンセントBRNZ",
+    "オーダーブラシレプリカ",
+  ],
+  ストリンガー: [
+    "トライストリンガー",
+    "LACT-450",
+    "トライストリンガーコラボ",
+    "LACT-450デコ",
+    "トライストリンガー燈",
+    "LACT-450MILK",
+    "フルイドⅤ",
+    "フルイドⅤカスタム",
+    "オーダーストリンガーレプリカ",
+  ],
+  ワイパー: [
+    "ドライブワイパー",
+    "ドライブワイパーデコ",
+    "ドライブワイパーRUST",
+    "ジムワイパー",
+    "ジムワイパーヒュー",
+    "デンタルワイパーミント",
+    "ジムワイパー封",
+    "デンタルワイパースミ",
+    "オーダーワイパーレプリカ",
+  ],
+};
+
 const quizWeapons = {
   "クイックボム+ウルトラショット": ["カーボンローラーデコ"],
   "キューバンボム+ウルトラショット": [
@@ -227,64 +426,6 @@ const quizWeapons = {
   "ポイントセンサー+マルチミサイル": ["フィンセント・ヒュー"],
   "スプラッシュボム+マルチミサイル": ["プライムシューターFRZN"],
 };
-
-// ===============================
-// 2. 全ブキ一覧（SelectMenu用）
-// ===============================
-const allWeaponNames = Object.values(quizWeapons).flat();
-
-// ===============================
-// 連続正解メッセージ（10回まで）
-// ===============================
-const streakMessages = [
-  "いいね！調子出てきた！",
-  "その調子！まだいける！",
-  "おお、連続正解！",
-  "キレてるね！",
-  "半分突破！すごい！",
-  "勢い止まらん！",
-  "強すぎる！",
-  "天才か？",
-  "神がかってる！",
-  "🎉 10連続正解！すごい！！ 🎉",
-];
-
-// ユーザーごとのゲーム状態保存
-const quizState = {};
-
-// ===============================
-// 5. SelectMenu 多段生成
-// ===============================
-const {
-  ActionRowBuilder,
-  StringSelectMenuBuilder,
-  EmbedBuilder,
-} = require("discord.js");
-
-function createPagedMenus(items, customIdBase) {
-  const menus = [];
-  const pageSize = 25;
-
-  for (let i = 0; i < items.length; i += pageSize) {
-    const pageItems = items.slice(i, i + pageSize);
-
-    const menu = new StringSelectMenuBuilder()
-      .setCustomId(`${customIdBase}_${menus.length}`)
-      .setPlaceholder(`ブキを選んでね（ページ ${menus.length + 1}）`)
-      .setMinValues(0)
-      .setMaxValues(pageItems.length)
-      .addOptions(
-        pageItems.map((name) => ({
-          label: name,
-          value: name,
-        })),
-      );
-
-    menus.push(new ActionRowBuilder().addComponents(menu));
-  }
-
-  return menus;
-}
 
 // ブキ一覧
 const weapons = [
@@ -527,6 +668,49 @@ async function listPlayers(guildId) {
   return data ?? [];
 }
 
+// ===============================
+// カテゴリ別 SelectMenu を作る
+// ===============================
+function createCategoryMenus(categories) {
+  const {
+    ActionRowBuilder,
+    StringSelectMenuBuilder,
+    ButtonBuilder,
+    ButtonStyle,
+  } = require("discord.js");
+
+  const rows = [];
+
+  // カテゴリごとに SelectMenu を作る
+  for (const cat of Object.keys(categories)) {
+    const weapons = categories[cat];
+
+    const menu = new StringSelectMenuBuilder()
+      .setCustomId(`quiz_cat_${cat}`)
+      .setPlaceholder(`${cat} のブキを選んでね`)
+      .setMinValues(0)
+      .setMaxValues(Math.min(25, weapons.length)) // Discord 制限
+      .addOptions(
+        weapons.map((w) => ({
+          label: w,
+          value: w,
+        })),
+      );
+
+    rows.push(new ActionRowBuilder().addComponents(menu));
+  }
+
+  // 最後に「決定」ボタン
+  const decideButton = new ButtonBuilder()
+    .setCustomId("quiz_decide")
+    .setLabel("決定")
+    .setStyle(ButtonStyle.Primary);
+
+  rows.push(new ActionRowBuilder().addComponents(decideButton));
+
+  return rows;
+}
+
 client.once("clientReady", () => {
   console.log(`ログイン完了: ${client.user.tag}`);
 });
@@ -661,40 +845,47 @@ client.on("messageCreate", async (message) => {
     );
   }
 
-  // -------------------------
-  // ① サブ＋スペシャル当てゲーム開始
-  // -------------------------
+  // ===============================
+  // !quiz1（カテゴリ別 UI 版）
+  // ===============================
   if (message.content === "!quiz1") {
+    // ランダムでカテゴリ（サブ+スペシャル）を選ぶ
     const keys = Object.keys(quizWeapons);
-
-    // ランダムで組み合わせを選ぶ
     const randomKey = keys[Math.floor(Math.random() * keys.length)];
     const [sub, sp] = randomKey.split("+");
 
     // 正解ブキ一覧
     const answers = quizWeapons[randomKey];
 
-    // SelectMenu（複数ページ対応）
-    const menus = createPagedMenus(allWeaponNames, "quiz1_select");
+    // ★ あなたがカテゴリ分けをここに入れる
+    // 例：
+    // const categories = {
+    //   "シューター": ["スプラシューター", "N-ZAP85", ...],
+    //   "ローラー": ["スプラローラー", ...],
+    //   ...
+    // };
+    const categories = weaponCategories; // ← あなたが作るオブジェクト
+
+    // カテゴリ別メニュー生成
+    const menus = createCategoryMenus(categories);
 
     // ゲーム状態保存
     quizState[message.author.id] = {
       answers,
-      streak: quizState[message.author.id]?.streak || 0,
       selected: [],
+      streak: quizState[message.author.id]?.streak || 0,
     };
 
-    // Embed
     const embed = new EmbedBuilder()
       .setTitle("🎯 サブ＋スペシャル当てゲーム")
       .setDescription(
-        `**サブ：${sub}**\n**スペシャル：${sp}**\n\nこの組み合わせのブキを全部選んでね！\n（複数ページのメニューから選んでOK）`,
+        `**サブ：${sub}**\n**スペシャル：${sp}**\n\nカテゴリごとにブキを選んで、最後に「決定」を押してね！`,
       )
       .setColor(0x00aeef);
 
     return message.reply({
       embeds: [embed],
-      components: [...menus],
+      components: menus,
     });
   }
 
@@ -898,45 +1089,61 @@ client.on("messageCreate", async (message) => {
 });
 
 client.on("interactionCreate", async (interaction) => {
-  if (!interaction.isStringSelectMenu()) return;
+  const userId = interaction.user.id;
+
+  // ゲーム状態がない場合
+  if (!quizState[userId]) return;
 
   // -------------------------
-  // ② 回答チェック
+  // カテゴリ選択
   // -------------------------
-  if (interaction.customId.startsWith("quiz1_select")) {
-    const userId = interaction.user.id;
+  if (interaction.customId.startsWith("quiz_cat_")) {
+    const selected = interaction.values;
+
+    // 選択を蓄積
+    quizState[userId].selected = [
+      ...new Set([...quizState[userId].selected, ...selected]),
+    ];
+
+    return interaction.reply({
+      content: "選択を記録したよ！",
+      ephemeral: true,
+    });
+  }
+
+  // -------------------------
+  // 決定ボタン
+  // -------------------------
+  if (interaction.customId === "quiz_decide") {
     const state = quizState[userId];
-    if (!state) {
-      return interaction.reply({
-        content: "ゲームが開始されていません！先に `!quiz1` を打ってね。",
-        ephemeral: true,
-      });
-    }
-
-    // 選択されたブキを蓄積
-    state.selected = [...new Set([...state.selected, ...interaction.values])];
+    const selected = state.selected;
+    const answers = state.answers;
 
     // 正解判定
-    const isCorrect = state.answers.every((a) => state.selected.includes(a));
+    const isCorrect =
+      answers.every((a) => selected.includes(a)) &&
+      selected.length === answers.length;
 
     if (isCorrect) {
       state.streak++;
-      const msgIndex = Math.min(state.streak - 1, streakMessages.length - 1);
-      const streakMsg = streakMessages[msgIndex];
 
       const embed = new EmbedBuilder()
         .setTitle("🎉 正解！")
-        .setDescription(`${streakMsg}\n\n現在の連続正解数：**${state.streak}**`)
+        .setDescription(
+          `正解ブキ：\n${answers.join("\n")}\n\n連続正解数：**${state.streak}**`,
+        )
         .setColor(0xffd700);
 
       return interaction.reply({ embeds: [embed] });
     } else {
       const embed = new EmbedBuilder()
-        .setTitle("📝 選択を記録したよ")
-        .setDescription("まだ他にも正解があるよ！")
-        .setColor(0x00aeef);
+        .setTitle("❌ 不正解…")
+        .setDescription(
+          `正解ブキ：\n${answers.join("\n")}\n\nあなたの選択：\n${selected.join("\n")}`,
+        )
+        .setColor(0xff0000);
 
-      return interaction.reply({ embeds: [embed], ephemeral: true });
+      return interaction.reply({ embeds: [embed] });
     }
   }
 
