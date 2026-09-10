@@ -1177,10 +1177,12 @@ client.on("interactionCreate", async (interaction) => {
     // 武器選択（カテゴリ名＋ページ番号）
     // -------------------------
     if (interaction.customId.startsWith("quiz_select_weapon_")) {
-      const selected = interaction.values;
+      const userId = interaction.user.id;
+      const selected = interaction.values; // ← ここは武器名だけが入る
 
-      state.selectedWeapons = [
-        ...new Set([...state.selectedWeapons, ...selected]),
+      // ★ 選択された武器を蓄積（重複なし）
+      quizState[userId].selectedWeapons = [
+        ...new Set([...quizState[userId].selectedWeapons, ...selected]),
       ];
 
       await interaction.deferUpdate(); // タイムアウト防止
