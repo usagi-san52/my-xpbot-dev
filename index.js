@@ -1141,17 +1141,24 @@ client.on("interactionCreate", async (interaction) => {
   const userId = interaction.user.id;
 
   // ============================================================
-  // クイズ関連の処理（quizState があるユーザーだけ通す）
+  // クイズ関連の処理（customId で判定する）
   // ============================================================
-  if (quizState[userId]) {
+  if (
+    interaction.customId.startsWith("quiz_select_weapon_") ||
+    interaction.customId === "quiz_next_category" ||
+    interaction.customId === "quiz_decide"
+  ) {
+    const state = quizState[userId];
+    if (!state) return; // クイズ中じゃないなら無視
+
     // -------------------------
     // 武器選択（ページ番号つき）
     // -------------------------
     if (interaction.customId.startsWith("quiz_select_weapon_")) {
       const selected = interaction.values;
 
-      quizState[userId].selectedWeapons = [
-        ...new Set([...quizState[userId].selectedWeapons, ...selected]),
+      state.selectedWeapons = [
+        ...new Set([...state.selectedWeapons, ...selected]),
       ];
 
       await interaction.deferUpdate(); // タイムアウト防止
@@ -1162,10 +1169,8 @@ client.on("interactionCreate", async (interaction) => {
     // 次のカテゴリへ
     // -------------------------
     if (interaction.customId === "quiz_next_category") {
-      const state = quizState[userId];
       state.currentCategoryIndex++;
 
-      // 全カテゴリ終了
       if (state.currentCategoryIndex >= state.categoryOrder.length) {
         const decideButton = new ButtonBuilder()
           .setCustomId("quiz_decide")
@@ -1182,7 +1187,6 @@ client.on("interactionCreate", async (interaction) => {
         return;
       }
 
-      // 次のカテゴリへ
       await interaction.update({
         content: "次のカテゴリに進むよ！",
         components: [],
@@ -1196,7 +1200,6 @@ client.on("interactionCreate", async (interaction) => {
     // 決定ボタン
     // -------------------------
     if (interaction.customId === "quiz_decide") {
-      const state = quizState[userId];
       const selected = state.selectedWeapons;
       const answers = state.answers;
 
@@ -1215,8 +1218,7 @@ client.on("interactionCreate", async (interaction) => {
       return;
     }
 
-    // ★ クイズ関連の処理はここで終了
-    return;
+    return; // ★ クイズ処理はここで終了
   }
 
   // ============================================================
