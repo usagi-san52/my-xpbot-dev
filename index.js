@@ -728,6 +728,34 @@ function createCategoryMenus(categories) {
   return rows;
 }
 
+// 今のカテゴリのメニューを出す関数
+function showCategoryMenu(channel, userId) {
+  const state = quizState[userId];
+  const category = state.categoryOrder[state.currentCategoryIndex];
+  const weapons = weaponCategories[category];
+
+  const menu = new StringSelectMenuBuilder()
+    .setCustomId("quiz_select_weapon")
+    .setPlaceholder(`${category} のブキを選んでね`)
+    .setMinValues(0)
+    .setMaxValues(Math.min(25, weapons.length))
+    .addOptions(weapons.map((w) => ({ label: w, value: w })));
+
+  const nextButton = new ButtonBuilder()
+    .setCustomId("quiz_next_category")
+    .setLabel("次のカテゴリへ")
+    .setStyle(ButtonStyle.Secondary);
+
+  const row1 = new ActionRowBuilder().addComponents(menu);
+  const row2 = new ActionRowBuilder().addComponents(nextButton);
+
+  const embed = new EmbedBuilder()
+    .setTitle("カテゴリ選択中")
+    .setDescription(`今は **${category}** のブキを選んでね`);
+
+  channel.send({ embeds: [embed], components: [row1, row2] });
+}
+
 client.once("clientReady", () => {
   console.log(`ログイン完了: ${client.user.tag}`);
 });
@@ -869,42 +897,20 @@ client.on("messageCreate", async (message) => {
     const keys = Object.keys(quizWeapons);
     const randomKey = keys[Math.floor(Math.random() * keys.length)];
     const [sub, sp] = randomKey.split("+");
-
     const answers = quizWeapons[randomKey];
+
+    const categoryOrder = Object.keys(weaponCategories); // シューター〜ワイパー
 
     quizState[message.author.id] = {
       answers,
-      selectedCategory: null,
       selectedWeapons: [],
       streak: quizState[message.author.id]?.streak || 0,
+      categoryOrder,
+      currentCategoryIndex: 0,
     };
 
-    // ★ あなたが作るカテゴリ分け
-    const categories = Object.keys(weaponCategories);
-
-    const categoryMenu = new StringSelectMenuBuilder()
-      .setCustomId("quiz_select_category")
-      .setPlaceholder("カテゴリを選んでね")
-      .addOptions(
-        categories.map((cat) => ({
-          label: cat,
-          value: cat,
-        })),
-      );
-
-    const row = new ActionRowBuilder().addComponents(categoryMenu);
-
-    const embed = new EmbedBuilder()
-      .setTitle("🎯 サブ＋スペシャル当てゲーム")
-      .setDescription(
-        `**サブ：${sub}**\n**スペシャル：${sp}**\n\nまずカテゴリを選んでね！`,
-      )
-      .setColor(0x00aeef);
-
-    return message.reply({
-      embeds: [embed],
-      components: [row],
-    });
+    // 最初のカテゴリを表示
+    showCategoryMenu(message.channel, message.author.id);
   }
 
   // -------------------------
@@ -1107,6 +1113,52 @@ client.on("messageCreate", async (message) => {
 });
 
 client.on("interactionCreate", async (interaction) => {
+  // 武器選択＋次へボタンで蓄積＆進行
+  if (interaction.customId === "quiz_select_weapon") {
+    const userId = interaction.user.id;
+    const selected = interaction.values;
+
+    quizState[userId].selectedWeapons = [
+      ...new Set([...quizState[userId].selectedWeapons, ...selected]),
+    ];
+
+    return interaction.reply({
+      content: "このカテゴリの選択を記録したよ！",
+      ephemeral: true,
+    });
+  }
+
+  if (interaction.customId === "quiz_next_category") {
+    const userId = interaction.user.id;
+    const state = quizState[userId];
+
+    state.currentCategoryIndex++;
+
+    if (state.currentCategoryIndex >= state.categoryOrder.length) {
+      // 全カテゴリ終了 → 決定ボタンを出す
+      const decideButton = new ButtonBuilder()
+        .setCustomId("quiz_decide")
+        .setLabel("決定")
+        .setStyle(ButtonStyle.Primary);
+
+      const row = new ActionRowBuilder().addComponents(decideButton);
+
+      return interaction.update({
+        content: "全カテゴリの選択が終わったよ！「決定」で判定するね。",
+        components: [row],
+      });
+    } else {
+      // 次のカテゴリを新しく表示
+      return (
+        interaction.update({
+          content: "次のカテゴリに進むよ！",
+          components: [],
+        }) && showCategoryMenu(interaction.channel, userId)
+      );
+    }
+  }
+
+  // これはいらなくなったのかどうか不明
   if (interaction.customId === "quiz_select_category") {
     const userId = interaction.user.id;
     const category = interaction.values[0];
@@ -1167,7 +1219,6 @@ client.on("interactionCreate", async (interaction) => {
   if (interaction.customId === "quiz_decide") {
     const userId = interaction.user.id;
     const state = quizState[userId];
-
     const selected = state.selectedWeapons;
     const answers = state.answers;
 
