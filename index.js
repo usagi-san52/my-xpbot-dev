@@ -866,43 +866,44 @@ client.on("messageCreate", async (message) => {
   // !quiz1（カテゴリ別 UI 版）
   // ===============================
   if (message.content === "!quiz1") {
-    // ランダムでカテゴリ（サブ+スペシャル）を選ぶ
     const keys = Object.keys(quizWeapons);
     const randomKey = keys[Math.floor(Math.random() * keys.length)];
     const [sub, sp] = randomKey.split("+");
 
-    // 正解ブキ一覧
     const answers = quizWeapons[randomKey];
 
-    // ★ あなたがカテゴリ分けをここに入れる
-    // 例：
-    // const categories = {
-    //   "シューター": ["スプラシューター", "N-ZAP85", ...],
-    //   "ローラー": ["スプラローラー", ...],
-    //   ...
-    // };
-    const categories = weaponCategories; // ← あなたが作るオブジェクト
-
-    // カテゴリ別メニュー生成
-    const menus = createCategoryMenus(categories);
-
-    // ゲーム状態保存
     quizState[message.author.id] = {
       answers,
-      selected: [],
+      selectedCategory: null,
+      selectedWeapons: [],
       streak: quizState[message.author.id]?.streak || 0,
     };
+
+    // ★ あなたが作るカテゴリ分け
+    const categories = Object.keys(weaponCategories);
+
+    const categoryMenu = new StringSelectMenuBuilder()
+      .setCustomId("quiz_select_category")
+      .setPlaceholder("カテゴリを選んでね")
+      .addOptions(
+        categories.map((cat) => ({
+          label: cat,
+          value: cat,
+        })),
+      );
+
+    const row = new ActionRowBuilder().addComponents(categoryMenu);
 
     const embed = new EmbedBuilder()
       .setTitle("🎯 サブ＋スペシャル当てゲーム")
       .setDescription(
-        `**サブ：${sub}**\n**スペシャル：${sp}**\n\nカテゴリごとにブキを選んで、最後に「決定」を押してね！`,
+        `**サブ：${sub}**\n**スペシャル：${sp}**\n\nまずカテゴリを選んでね！`,
       )
       .setColor(0x00aeef);
 
     return message.reply({
       embeds: [embed],
-      components: menus,
+      components: [row],
     });
   }
 
@@ -1106,37 +1107,60 @@ client.on("messageCreate", async (message) => {
 });
 
 client.on("interactionCreate", async (interaction) => {
-  const userId = interaction.user.id;
+  if (interaction.customId === "quiz_select_category") {
+    const userId = interaction.user.id;
+    const category = interaction.values[0];
 
-  // ゲーム状態がない場合
-  if (!quizState[userId]) return;
+    quizState[userId].selectedCategory = category;
 
-  // -------------------------
-  // カテゴリ選択
-  // -------------------------
-  if (interaction.customId.startsWith("quiz_cat_")) {
-    const selected = interaction.values;
+    const weapons = weaponCategories[category];
 
-    // 選択を蓄積
-    quizState[userId].selected = [
-      ...new Set([...quizState[userId].selected, ...selected]),
-    ];
+    const weaponMenu = new StringSelectMenuBuilder()
+      .setCustomId("quiz_select_weapon")
+      .setPlaceholder(`${category} のブキを選んでね`)
+      .setMinValues(0)
+      .setMaxValues(Math.min(25, weapons.length))
+      .addOptions(
+        weapons.map((w) => ({
+          label: w,
+          value: w,
+        })),
+      );
+
+    const decideButton = new ButtonBuilder()
+      .setCustomId("quiz_decide")
+      .setLabel("決定")
+      .setStyle(ButtonStyle.Primary);
+
+    const row1 = new ActionRowBuilder().addComponents(weaponMenu);
+    const row2 = new ActionRowBuilder().addComponents(decideButton);
 
     return interaction.reply({
-      content: "選択を記録したよ！",
+      content: `${category} を選んだよ！ 次はブキを選んでね！`,
+      components: [row1, row2],
       ephemeral: true,
     });
   }
 
-  // -------------------------
-  // 決定ボタン
-  // -------------------------
+  // 武器選択 → 選択を保存
+  if (interaction.customId === "quiz_select_weapon") {
+    const userId = interaction.user.id;
+    quizState[userId].selectedWeapons = interaction.values;
+
+    return interaction.reply({
+      content: "ブキの選択を記録したよ！",
+      ephemeral: true,
+    });
+  }
+
+  // 決定ボタン → 正解判定
   if (interaction.customId === "quiz_decide") {
+    const userId = interaction.user.id;
     const state = quizState[userId];
-    const selected = state.selected;
+
+    const selected = state.selectedWeapons;
     const answers = state.answers;
 
-    // 正解判定
     const isCorrect =
       answers.every((a) => selected.includes(a)) &&
       selected.length === answers.length;
@@ -1164,7 +1188,9 @@ client.on("interactionCreate", async (interaction) => {
     }
   }
 
+  // -------------------------
   // ルール選択
+  // -------------------------
   if (interaction.customId === "rule_multi_select") {
     const selectedRules = interaction.values;
 
