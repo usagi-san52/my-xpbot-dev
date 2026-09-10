@@ -1137,30 +1137,35 @@ client.on("messageCreate", async (message) => {
   }
 });
 
+// クイズ関連の処理
 client.on("interactionCreate", async (interaction) => {
-  // 武器選択＋次へボタンで蓄積＆進行
-  if (interaction.customId === "quiz_select_weapon") {
-    const userId = interaction.user.id;
+  const userId = interaction.user.id;
+  if (!quizState[userId]) return;
+
+  // -------------------------
+  // 武器選択（ページ番号つき）
+  // -------------------------
+  if (interaction.customId.startsWith("quiz_select_weapon_")) {
     const selected = interaction.values;
 
     quizState[userId].selectedWeapons = [
       ...new Set([...quizState[userId].selectedWeapons, ...selected]),
     ];
 
-    return interaction.reply({
-      content: "このカテゴリの選択を記録したよ！",
-      ephemeral: true,
-    });
+    // タイムアウト防止
+    await interaction.deferUpdate();
+    return;
   }
 
+  // -------------------------
+  // 次のカテゴリへ
+  // -------------------------
   if (interaction.customId === "quiz_next_category") {
-    const userId = interaction.user.id;
     const state = quizState[userId];
-
     state.currentCategoryIndex++;
 
+    // 全カテゴリ終了
     if (state.currentCategoryIndex >= state.categoryOrder.length) {
-      // 全カテゴリ終了 → 決定ボタンを出す
       const decideButton = new ButtonBuilder()
         .setCustomId("quiz_decide")
         .setLabel("決定")
@@ -1168,81 +1173,28 @@ client.on("interactionCreate", async (interaction) => {
 
       const row = new ActionRowBuilder().addComponents(decideButton);
 
-      return interaction.update({
+      await interaction.update({
         content: "全カテゴリの選択が終わったよ！「決定」で判定するね。",
         components: [row],
       });
-    } else {
-      // 次のカテゴリを新しく表示
-      return (
-        interaction.update({
-          content: "次のカテゴリに進むよ！",
-          components: [],
-        }) && showCategoryMenu(interaction.channel, userId)
-      );
-    }
-  }
 
-  // これはいらなくなったのかどうか不明
-  if (interaction.customId === "quiz_select_category") {
-    const userId = interaction.user.id;
-    const category = interaction.values[0];
-
-    quizState[userId].selectedCategory = category;
-
-    const weapons = weaponCategories[category];
-
-    const rows = [];
-    const pageSize = 25;
-
-    for (let i = 0; i < weapons.length; i += pageSize) {
-      const pageItems = weapons.slice(i, i + pageSize);
-
-      const weaponMenu = new StringSelectMenuBuilder()
-        .setCustomId(`quiz_select_weapon_${i / pageSize}`)
-        .setPlaceholder(
-          `${category} のブキを選んでね（ページ ${i / pageSize + 1}）`,
-        )
-        .setMinValues(0)
-        .setMaxValues(pageItems.length)
-        .addOptions(
-          pageItems.map((w) => ({
-            label: w,
-            value: w,
-          })),
-        );
-
-      rows.push(new ActionRowBuilder().addComponents(weaponMenu));
+      return;
     }
 
-    const decideButton = new ButtonBuilder()
-      .setCustomId("quiz_decide")
-      .setLabel("決定")
-      .setStyle(ButtonStyle.Primary);
-
-    rows.push(new ActionRowBuilder().addComponents(decideButton));
-
-    return interaction.reply({
-      content: `${category} を選んだよ！ 次はブキを選んでね！`,
-      components: rows,
-      ephemeral: true,
+    // 次のカテゴリへ
+    await interaction.update({
+      content: "次のカテゴリに進むよ！",
+      components: [],
     });
+
+    showCategoryMenu(interaction.channel, userId);
+    return;
   }
 
-  // 武器選択 → 選択を保存
-  if (interaction.customId === "quiz_select_weapon") {
-    const userId = interaction.user.id;
-    quizState[userId].selectedWeapons = interaction.values;
-
-    return interaction.reply({
-      content: "ブキの選択を記録したよ！",
-      ephemeral: true,
-    });
-  }
-
-  // 決定ボタン → 正解判定
+  // -------------------------
+  // 決定ボタン
+  // -------------------------
   if (interaction.customId === "quiz_decide") {
-    const userId = interaction.user.id;
     const state = quizState[userId];
     const selected = state.selectedWeapons;
     const answers = state.answers;
@@ -1251,29 +1203,18 @@ client.on("interactionCreate", async (interaction) => {
       answers.every((a) => selected.includes(a)) &&
       selected.length === answers.length;
 
-    if (isCorrect) {
-      state.streak++;
+    const embed = new EmbedBuilder()
+      .setTitle(isCorrect ? "🎉 正解！" : "❌ 不正解…")
+      .setDescription(
+        `正解ブキ：\n${answers.join("\n")}\n\nあなたの選択：\n${selected.join("\n")}`,
+      )
+      .setColor(isCorrect ? 0xffd700 : 0xff0000);
 
-      const embed = new EmbedBuilder()
-        .setTitle("🎉 正解！")
-        .setDescription(
-          `正解ブキ：\n${answers.join("\n")}\n\n連続正解数：**${state.streak}**`,
-        )
-        .setColor(0xffd700);
-
-      return interaction.reply({ embeds: [embed] });
-    } else {
-      const embed = new EmbedBuilder()
-        .setTitle("❌ 不正解…")
-        .setDescription(
-          `正解ブキ：\n${answers.join("\n")}\n\nあなたの選択：\n${selected.join("\n")}`,
-        )
-        .setColor(0xff0000);
-
-      return interaction.reply({ embeds: [embed] });
-    }
+    await interaction.reply({ embeds: [embed] });
   }
+});
 
+client.on("interactionCreate", async (interaction) => {
   // -------------------------
   // ルール選択
   // -------------------------
