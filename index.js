@@ -1115,29 +1115,39 @@ client.on("interactionCreate", async (interaction) => {
 
     const weapons = weaponCategories[category];
 
-    const weaponMenu = new StringSelectMenuBuilder()
-      .setCustomId("quiz_select_weapon")
-      .setPlaceholder(`${category} のブキを選んでね`)
-      .setMinValues(0)
-      .setMaxValues(Math.min(25, weapons.length))
-      .addOptions(
-        weapons.map((w) => ({
-          label: w,
-          value: w,
-        })),
-      );
+    const rows = [];
+    const pageSize = 25;
+
+    for (let i = 0; i < weapons.length; i += pageSize) {
+      const pageItems = weapons.slice(i, i + pageSize);
+
+      const weaponMenu = new StringSelectMenuBuilder()
+        .setCustomId(`quiz_select_weapon_${i / pageSize}`)
+        .setPlaceholder(
+          `${category} のブキを選んでね（ページ ${i / pageSize + 1}）`,
+        )
+        .setMinValues(0)
+        .setMaxValues(pageItems.length)
+        .addOptions(
+          pageItems.map((w) => ({
+            label: w,
+            value: w,
+          })),
+        );
+
+      rows.push(new ActionRowBuilder().addComponents(weaponMenu));
+    }
 
     const decideButton = new ButtonBuilder()
       .setCustomId("quiz_decide")
       .setLabel("決定")
       .setStyle(ButtonStyle.Primary);
 
-    const row1 = new ActionRowBuilder().addComponents(weaponMenu);
-    const row2 = new ActionRowBuilder().addComponents(decideButton);
+    rows.push(new ActionRowBuilder().addComponents(decideButton));
 
     return interaction.reply({
       content: `${category} を選んだよ！ 次はブキを選んでね！`,
-      components: [row1, row2],
+      components: rows,
       ephemeral: true,
     });
   }
