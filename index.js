@@ -793,49 +793,6 @@ function createCategoryMenus(categories) {
   return rows;
 }
 
-// 今のカテゴリのメニューを出す関数
-function showCategoryMenu(channel, userId) {
-  const state = quizState[userId];
-  const category = state.categoryOrder[state.currentCategoryIndex];
-  const weapons = weaponCategories[category];
-
-  const rows = [];
-  const pageSize = 25;
-
-  for (let i = 0; i < weapons.length; i += pageSize) {
-    const pageItems = weapons.slice(i, i + pageSize);
-
-    const menu = new StringSelectMenuBuilder()
-      .setCustomId(`quiz_select_weapon_${i / pageSize}`)
-      .setPlaceholder(
-        `${category} のブキを選んでね（ページ ${i / pageSize + 1}）`,
-      )
-      .setMinValues(0)
-      .setMaxValues(pageItems.length)
-      .addOptions(
-        pageItems.map((w) => ({
-          label: w,
-          value: w,
-        })),
-      );
-
-    rows.push(new ActionRowBuilder().addComponents(menu));
-  }
-
-  const nextButton = new ButtonBuilder()
-    .setCustomId("quiz_next_category")
-    .setLabel("次のカテゴリへ")
-    .setStyle(ButtonStyle.Secondary);
-
-  rows.push(new ActionRowBuilder().addComponents(nextButton));
-
-  const embed = new EmbedBuilder()
-    .setTitle("カテゴリ選択")
-    .setDescription(`今は **${category}** のブキを選んでね`);
-
-  channel.send({ embeds: [embed], components: rows });
-}
-
 client.once("clientReady", () => {
   console.log(`ログイン完了: ${client.user.tag}`);
 });
@@ -980,16 +937,19 @@ client.on("messageCreate", async (message) => {
     const answers = quizWeapons[randomKey];
 
     const categoryOrder = Object.keys(weaponCategories);
+    const userId = message.author.id; // ★ 必須
 
-    quizState[message.author.id] = {
+    // ★ 新しいクイズ状態
+    quizState[userId] = {
       answers,
       selectedWeapons: [],
-      streak: quizState[message.author.id]?.streak || 0,
+      streak: quizState[userId]?.streak || 0,
       categoryOrder,
-      currentCategoryIndex: 0,
+      categoryChunks: chunkCategories(categoryOrder), // ★ 4カテゴリずつに分割
+      currentGroupIndex: 0, // ★ 最初のグループ
     };
 
-    // ★ まず問題文を出す
+    // ★ 問題文を出す
     const embed = new EmbedBuilder()
       .setTitle("🎯 サブ＋スペシャル当てゲーム")
       .setDescription(
@@ -999,13 +959,8 @@ client.on("messageCreate", async (message) => {
 
     await message.reply({ embeds: [embed] });
 
-    // ★ 次にカテゴリ選択メニューを出す
-    quizState[message.author.id].categoryChunks = chunkCategories(
-      quizState[message.author.id].categoryOrder,
-    );
-    quizState[message.author.id].currentGroupIndex = 0;
-
-    showCategoryGroupMenu(message.channel, message.author.id);
+    // ★ 4カテゴリまとめ UI を表示
+    showCategoryGroupMenu(message.channel, userId);
   }
 
   // -------------------------
