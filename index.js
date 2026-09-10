@@ -968,6 +968,19 @@ client.on("messageCreate", async (message) => {
       .setColor(0x00aeef);
 
     await message.reply({ embeds: [embed] });
+
+    // ★ quiz_start ボタンを送る（これが必須）
+    const startButton = new ButtonBuilder()
+      .setCustomId("quiz_start")
+      .setLabel("武器選択を開始")
+      .setStyle(ButtonStyle.Primary);
+
+    const row = new ActionRowBuilder().addComponents(startButton);
+
+    await message.channel.send({
+      content: "武器選択を始めるよ！",
+      components: [row],
+    });
   }
 
   // -------------------------
